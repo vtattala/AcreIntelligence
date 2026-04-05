@@ -80,15 +80,21 @@ public class DiseaseModel {
 
             Gson gson = new Gson();
             JsonObject jsonObject = gson.fromJson(jsonString.toString(), JsonObject.class);
-            String[] classesArray = gson.fromJson(
-                    jsonObject.getAsJsonArray("classes"),
-                    String[].class
-            );
+            JsonObject classesObject = jsonObject.getAsJsonObject("classes"); // get the dictionary
 
-            for (String className : classesArray) {
-                String cleanName = className.replace("___", " - ").replace("_", " ");
-                labels.add(cleanName);
+            // Convert keys to a list and sort numerically
+            List<Integer> keys = new ArrayList<>();
+            for (String key : classesObject.keySet()) {
+                keys.add(Integer.parseInt(key));
             }
+            keys.sort(Integer::compareTo);
+
+            // Add class names to labels list in ID order
+            for (Integer key : keys) {
+                String className = classesObject.get(key.toString()).getAsString();
+                labels.add(className); // now labels[0] corresponds to class ID 100
+            }
+
             Log.i(TAG, "Successfully loaded " + labels.size() + " disease labels");
         } catch (Exception e) {
             Log.e(TAG, "Error loading labels: " + e.getMessage(), e);

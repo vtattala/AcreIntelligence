@@ -1,55 +1,66 @@
 package com.example.plantdisease;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
-
 import androidx.appcompat.app.AppCompatActivity;
 
 public class HomeActivity extends AppCompatActivity {
 
     private TextView welcomeText;
-    private View plantDiseaseBtn, insectDetectionBtn;
+    private Button plantDiseaseBtn, insectDetectionBtn;
+    private String userName, userRegion;
 
-    private String userName, userEmail, userCountry;
-
+    @SuppressLint("WrongViewCast")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+        Button plantInfoBtn = findViewById(R.id.plantInfoBtn);
+        Button notepadBtn = findViewById(R.id.notepadBtn);
+        Button encyclopediaBtn = findViewById(R.id.encyclopediaBtn);
+        Button regionalGuideBtn = findViewById(R.id.regionalGuideBtn);
 
-        // Get user info from WelcomeActivity
+        regionalGuideBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, RegionalGuideActivity.class);
+            startActivity(intent);
+        });
+
+        plantInfoBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, PlantInfoActivity.class);
+            startActivity(intent);
+        });
+
+        notepadBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, NotepadActivity.class);
+            startActivity(intent);
+        });
+
+        encyclopediaBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, EncyclopediaActivity.class);
+            startActivity(intent);
+        });
+
+        // Get user info
         Intent intent = getIntent();
         userName = intent.getStringExtra("USER_NAME");
-        userEmail = intent.getStringExtra("USER_EMAIL");
-        userCountry = intent.getStringExtra("USER_COUNTRY");
+        userRegion = intent.getStringExtra("USER_REGION");
 
-        // Find all views
         welcomeText = findViewById(R.id.welcomeText);
         plantDiseaseBtn = findViewById(R.id.plantDiseaseBtn);
         insectDetectionBtn = findViewById(R.id.insectDetectionBtn);
-        View plantInfoBtn = findViewById(R.id.plantInfoBtn);
-        View notepadBtn = findViewById(R.id.notepadBtn);
-        View encyclopediaBtn = findViewById(R.id.encyclopediaBtn);
-        View regionalGuideBtn = findViewById(R.id.regionalGuideBtn);
-        View chatbotBtn = findViewById(R.id.chatbotBtn);
-        View satelliteBtn = findViewById(R.id.satelliteBtn);
-        View spaceWeatherBtn = findViewById(R.id.spaceWeatherBtn); // NEW
 
         // Display welcome message
-        welcomeText.setText(
-                "Welcome back, " + userName +
-                        "!\nCountry: " + userCountry +
-                        "\nEmail: " + userEmail
-        );
+        welcomeText.setText("Welcome, " + userName + "!\nFrom: " + userRegion);
 
         // Plant Disease button
         plantDiseaseBtn.setOnClickListener(v -> {
             Intent plantIntent = new Intent(HomeActivity.this, MainActivity.class);
             plantIntent.putExtra("USER_NAME", userName);
-            plantIntent.putExtra("USER_EMAIL", userEmail);
-            plantIntent.putExtra("USER_COUNTRY", userCountry);
+            plantIntent.putExtra("USER_REGION", userRegion);
             startActivity(plantIntent);
         });
 
@@ -57,54 +68,8 @@ public class HomeActivity extends AppCompatActivity {
         insectDetectionBtn.setOnClickListener(v -> {
             Intent insectIntent = new Intent(HomeActivity.this, InsectActivity.class);
             insectIntent.putExtra("USER_NAME", userName);
-            insectIntent.putExtra("USER_EMAIL", userEmail);
-            insectIntent.putExtra("USER_COUNTRY", userCountry);
+            insectIntent.putExtra("USER_REGION", userRegion);
             startActivity(insectIntent);
-        });
-
-        // Encyclopedia button
-        encyclopediaBtn.setOnClickListener(v -> {
-            Intent encyclopediaIntent = new Intent(HomeActivity.this, EncyclopediaActivity.class);
-            startActivity(encyclopediaIntent);
-        });
-
-        // Regional Guide button
-        regionalGuideBtn.setOnClickListener(v -> {
-            Intent regionalIntent = new Intent(HomeActivity.this, RegionalGuideActivity.class);
-            regionalIntent.putExtra("USER_COUNTRY", userCountry);
-            startActivity(regionalIntent);
-        });
-
-        // Plant Info button
-        plantInfoBtn.setOnClickListener(v -> {
-            Intent plantInfoIntent = new Intent(HomeActivity.this, PlantInfoActivity.class);
-            startActivity(plantInfoIntent);
-        });
-
-        // Notepad button
-        notepadBtn.setOnClickListener(v -> {
-            Intent notepadIntent = new Intent(HomeActivity.this, NotepadActivity.class);
-            startActivity(notepadIntent);
-        });
-
-        // Chatbot button
-        chatbotBtn.setOnClickListener(v -> {
-            Intent chatIntent = new Intent(HomeActivity.this, ChatActivity.class);
-            chatIntent.putExtra("USER_NAME", userName);
-            startActivity(chatIntent);
-        });
-
-        // Agricultural Data (Satellite) button
-        satelliteBtn.setOnClickListener(v -> {
-            Intent satIntent = new Intent(HomeActivity.this, SatelliteActivity.class);
-            satIntent.putExtra("USER_COUNTRY", userCountry);
-            startActivity(satIntent);
-        });
-
-        // Space Weather button - NEW
-        spaceWeatherBtn.setOnClickListener(v -> {
-            Intent spaceIntent = new Intent(HomeActivity.this, SpaceWeatherActivity.class);
-            startActivity(spaceIntent);
         });
     }
 }
