@@ -23,7 +23,7 @@ import java.net.URL;
 public class EncyclopediaActivity extends AppCompatActivity {
 
     private static final String TAG = "Encyclopedia";
-    private static final String TREFLE_API_KEY = "placeholder"; // REPLACE WITH YOUR KEY
+    private static final String TREFLE_API_KEY = "usr-cOa8wIEJtVxA5a2ny-l7maXCHTlcPiGjT9TnBlMMfvI"; // REPLACE WITH YOUR KEY
 
     private EditText searchInput;
     private Button searchBtn, backBtn;

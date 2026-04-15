@@ -9,10 +9,13 @@ import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -62,34 +65,28 @@ public class RegionalGuideActivity extends AppCompatActivity {
         resultText.setText("🌍 Analyzing agricultural conditions for " + location + "...");
 
         new Thread(() -> {
-            try {
-                RegionalData data = fetchRegionalData(location);
+            RegionalData data = fetchRegionalData(location);
 
-                runOnUiThread(() -> {
-                    progressBar.setVisibility(ProgressBar.GONE);
-                    if (data != null) {
-                        displayRegionalInfo(data);
-                        loadMapImage(data.latitude, data.longitude);
-                    } else {
-                        resultText.setText("❌ Location not found\n\nTry:\n• Major cities (New York, Tokyo)\n• Regions (California, Tuscany)\n• Check spelling");
-                    }
-                });
-
-            } catch (Exception e) {
-                Log.e(TAG, "Error", e);
-                runOnUiThread(() -> {
-                    progressBar.setVisibility(ProgressBar.GONE);
-                    resultText.setText("❌ Error: " + e.getMessage());
-                });
-            }
+            runOnUiThread(() -> {
+                progressBar.setVisibility(ProgressBar.GONE);
+                if (data != null) {
+                    displayRegionalInfo(data);
+                    loadMapImage(data.latitude, data.longitude);
+                } else {
+                    resultText.setText("❌ Location not found. Try a major city or region.");
+                }
+            });
         }).start();
     }
 
     private RegionalData fetchRegionalData(String location) {
         try {
             String encodedLocation = location.replace(" ", "%20");
-            String weatherUrl = "https://api.openweathermap.org/data/2.5/weather?q=" +
-                    encodedLocation + "&appid=" + WEATHER_API_KEY + "&units=metric";
+            String weatherUrl =
+                    "https://api.openweathermap.org/data/2.5/weather?q=" +
+                            encodedLocation +
+                            "&appid=" + WEATHER_API_KEY +
+                            "&units=metric";
 
             String response = makeRequest(weatherUrl);
             if (response == null) return null;
@@ -109,15 +106,14 @@ public class RegionalGuideActivity extends AppCompatActivity {
             data.humidity = main.get("humidity").getAsInt();
 
             JsonArray weatherArray = json.getAsJsonArray("weather");
-            data.weatherDescription = weatherArray.get(0).getAsJsonObject().get("description").getAsString();
+            data.weatherDescription =
+                    weatherArray.get(0).getAsJsonObject().get("description").getAsString();
 
             determineClimateAndPlants(data);
-
-            Log.i(TAG, "Found: " + data.location);
             return data;
 
         } catch (Exception e) {
-            Log.e(TAG, "API error", e);
+            Log.e(TAG, "Weather API error", e);
             return null;
         }
     }
@@ -127,61 +123,61 @@ public class RegionalGuideActivity extends AppCompatActivity {
 
         if (lat < 23.5) {
             data.climateZone = "Tropical";
-            data.idealVegetables = "Tomatoes, Peppers, Eggplant, Okra, Sweet Potato";
-            data.idealGrains = "Rice, Corn, Millet, Sorghum";
-            data.idealFruits = "Mango, Banana, Papaya, Pineapple";
-            data.wateringFrequency = "Daily watering recommended, high rainfall region";
-            data.growingSeason = "Year-round growing possible";
+            data.idealVegetables = "Tomatoes, Peppers, Eggplant, Okra";
+            data.idealGrains = "Rice, Corn, Millet";
+            data.idealFruits = "Mango, Banana, Papaya";
+            data.wateringFrequency = "Daily";
+            data.growingSeason = "Year‑round";
         } else if (lat < 35) {
             data.climateZone = "Subtropical";
-            data.idealVegetables = "Tomatoes, Cucumbers, Squash, Beans, Carrots";
-            data.idealGrains = "Wheat, Barley, Oats, Corn";
-            data.idealFruits = "Citrus (Oranges, Lemons), Figs, Grapes, Peaches";
-            data.wateringFrequency = "Every 2-3 days, moderate rainfall";
-            data.growingSeason = "March-October (8-9 months)";
+            data.idealVegetables = "Tomatoes, Cucumbers, Squash";
+            data.idealGrains = "Wheat, Corn";
+            data.idealFruits = "Citrus, Grapes";
+            data.wateringFrequency = "Every 2‑3 days";
+            data.growingSeason = "March‑October";
         } else if (lat < 50) {
             data.climateZone = "Temperate";
-            data.idealVegetables = "Potatoes, Cabbage, Lettuce, Peas, Carrots, Beets";
-            data.idealGrains = "Wheat, Rye, Barley, Oats";
-            data.idealFruits = "Apples, Pears, Berries, Cherries";
-            data.wateringFrequency = "Every 3-5 days, variable rainfall";
-            data.growingSeason = "April-September (5-6 months)";
+            data.idealVegetables = "Potatoes, Cabbage, Lettuce";
+            data.idealGrains = "Wheat, Barley";
+            data.idealFruits = "Apples, Berries";
+            data.wateringFrequency = "Every 3‑5 days";
+            data.growingSeason = "April‑September";
         } else {
-            data.climateZone = "Cold/Subarctic";
-            data.idealVegetables = "Hardy vegetables: Kale, Cabbage, Root vegetables";
-            data.idealGrains = "Hardy wheat, Barley, Rye";
-            data.idealFruits = "Berries, Cold-hardy apples";
-            data.wateringFrequency = "Every 4-7 days, short season";
-            data.growingSeason = "May-August (3-4 months)";
+            data.climateZone = "Cold";
+            data.idealVegetables = "Kale, Root vegetables";
+            data.idealGrains = "Barley, Rye";
+            data.idealFruits = "Berries";
+            data.wateringFrequency = "Every 4‑7 days";
+            data.growingSeason = "May‑August";
         }
 
         if (data.temperature < 10) {
-            data.currentAdvice = "⚠️ Currently too cold for most planting. Prepare soil and plan for spring.";
+            data.currentAdvice = "⚠️ Too cold for planting.";
         } else if (data.temperature > 30) {
-            data.currentAdvice = "☀️ High heat - ensure adequate irrigation and mulching to retain moisture.";
+            data.currentAdvice = "☀️ High heat — increase irrigation.";
         } else {
-            data.currentAdvice = "✅ Good temperatures for active growing season. Monitor soil moisture.";
+            data.currentAdvice = "✅ Good growing conditions.";
         }
     }
 
     private String makeRequest(String urlString) {
         try {
-            URL url = new URL(urlString);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
+            HttpURLConnection conn =
+                    (HttpURLConnection) new URL(urlString).openConnection();
             conn.setConnectTimeout(10000);
             conn.setReadTimeout(10000);
 
             if (conn.getResponseCode() != 200) return null;
 
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(conn.getInputStream())
-            );
+            BufferedReader reader =
+                    new BufferedReader(new InputStreamReader(conn.getInputStream()));
             StringBuilder response = new StringBuilder();
             String line;
+
             while ((line = reader.readLine()) != null) {
                 response.append(line);
             }
+
             reader.close();
             return response.toString();
 
@@ -191,40 +187,71 @@ public class RegionalGuideActivity extends AppCompatActivity {
         }
     }
 
+    private void loadMapImage(double latitude, double longitude) {
+        new Thread(() -> {
+            try {
+                int zoom = 12;
+
+                double x = Math.floor((longitude + 180) / 360 * (1 << zoom));
+                double y = Math.floor(
+                        (1 - Math.log(Math.tan(Math.toRadians(latitude)) +
+                                1 / Math.cos(Math.toRadians(latitude))) / Math.PI) / 2 * (1 << zoom)
+                );
+
+                String mapUrl = String.format(Locale.US,
+                        "https://services.arcgisonline.com/ArcGIS/rest/services/" +
+                                "World_Imagery/MapServer/tile/%d/%d/%d",
+                        zoom, (int) y, (int) x
+                );
+
+                Log.i(TAG, "Loading satellite tile: " + mapUrl);
+
+                HttpURLConnection conn =
+                        (HttpURLConnection) new URL(mapUrl).openConnection();
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+
+                if (conn.getResponseCode() == 200) {
+                    android.graphics.Bitmap bitmap =
+                            android.graphics.BitmapFactory.decodeStream(conn.getInputStream());
+
+                    runOnUiThread(() -> {
+                        mapView.setImageBitmap(bitmap);
+                        mapView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    });
+                }
+
+                conn.disconnect();
+
+            } catch (Exception e) {
+                Log.e(TAG, "Satellite map error", e);
+            }
+        }).start();
+    }
+
     private void displayRegionalInfo(RegionalData data) {
         StringBuilder result = new StringBuilder();
 
-        result.append("📍 ").append(data.location.toUpperCase()).append(", ").append(data.country).append("\n");
-        result.append("═══════════════════════════════\n\n");
+        result.append("📍 ").append(data.location.toUpperCase())
+                .append(", ").append(data.country).append("\n\n");
 
-        result.append("🌡️ CURRENT CONDITIONS\n");
-        result.append("Temperature: ").append(String.format("%.1f°C", data.temperature)).append("\n");
-        result.append("Weather: ").append(capitalize(data.weatherDescription)).append("\n");
-        result.append("Humidity: ").append(data.humidity).append("%\n");
-        result.append("Coordinates: ").append(String.format("%.2f, %.2f", data.latitude, data.longitude)).append("\n\n");
+        result.append("🌡️ Temperature: ")
+                .append(String.format("%.1f°C", data.temperature)).append("\n");
+        result.append("💧 Humidity: ").append(data.humidity).append("%\n");
+        result.append("🌦️ Weather: ").append(capitalize(data.weatherDescription)).append("\n\n");
 
-        result.append("🌍 CLIMATE ZONE\n");
-        result.append(data.climateZone).append("\n");
-        result.append("Growing Season: ").append(data.growingSeason).append("\n\n");
+        result.append("🌍 Climate Zone: ").append(data.climateZone).append("\n");
+        result.append("📅 Growing Season: ").append(data.growingSeason).append("\n\n");
 
-        result.append("🥬 IDEAL VEGETABLES\n");
-        result.append(data.idealVegetables).append("\n\n");
+        result.append("🥬 Vegetables: ").append(data.idealVegetables).append("\n\n");
+        result.append("🌾 Grains: ").append(data.idealGrains).append("\n\n");
+        result.append("🍎 Fruits: ").append(data.idealFruits).append("\n\n");
 
-        result.append("🌾 IDEAL GRAINS\n");
-        result.append(data.idealGrains).append("\n\n");
+        result.append("💧 Watering: ").append(data.wateringFrequency).append("\n\n");
+        result.append("📌 Advice: ").append(data.currentAdvice).append("\n\n");
 
-        result.append("🍎 IDEAL FRUITS\n");
-        result.append(data.idealFruits).append("\n\n");
-
-        result.append("💧 WATERING GUIDE\n");
-        result.append(data.wateringFrequency).append("\n\n");
-
-        result.append("📅 CURRENT ADVICE\n");
-        result.append(data.currentAdvice).append("\n\n");
-
-        result.append("─────────────────────────\n");
-        result.append("🌐 Source: OpenWeatherMap + Agricultural Database\n");
-        result.append("Updated: ").append(new SimpleDateFormat("MMM dd, HH:mm", Locale.US).format(new Date()));
+        result.append("Updated: ")
+                .append(new SimpleDateFormat("MMM dd, HH:mm", Locale.US).format(new Date()));
 
         resultText.setText(result.toString());
         scrollView.smoothScrollTo(0, 0);
@@ -233,67 +260,6 @@ public class RegionalGuideActivity extends AppCompatActivity {
     private String capitalize(String str) {
         if (str == null || str.isEmpty()) return str;
         return str.substring(0, 1).toUpperCase() + str.substring(1);
-    }
-
-    private void loadMapImage(double latitude, double longitude) {
-        new Thread(() -> {
-            try {
-                // Using OpenStreetMap tile server directly
-                int zoom = 12;
-                double x = Math.floor((longitude + 180) / 360 * (1 << zoom));
-                double y = Math.floor((1 - Math.log(Math.tan(Math.toRadians(latitude)) +
-                        1 / Math.cos(Math.toRadians(latitude))) / Math.PI) / 2 * (1 << zoom));
-
-                String mapUrl = String.format(Locale.US,
-                        "https://tile.openstreetmap.org/%d/%d/%d.png",
-                        zoom, (int)x, (int)y
-                );
-
-                Log.i(TAG, "Loading map from: " + mapUrl);
-
-                URL url = new URL(mapUrl);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setRequestProperty("User-Agent", "AcreIntelligence/1.0");
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(15000);
-
-                int responseCode = conn.getResponseCode();
-                Log.i(TAG, "Response code: " + responseCode);
-
-                if (responseCode == 200) {
-                    android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(
-                            conn.getInputStream()
-                    );
-
-                    runOnUiThread(() -> {
-                        if (bitmap != null) {
-                            mapView.setImageBitmap(bitmap);
-                            mapView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                            Log.i(TAG, "✓ Map loaded successfully!");
-                            Toast.makeText(this, "Map loaded", Toast.LENGTH_SHORT).show();
-                        } else {
-                            Log.e(TAG, "Bitmap is null");
-                            Toast.makeText(this, "Map image failed", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } else {
-                    Log.e(TAG, "HTTP error: " + responseCode);
-                }
-
-                conn.disconnect();
-
-            } catch (Exception e) {
-                Log.e(TAG, "Map load error: " + e.getClass().getSimpleName());
-                Log.e(TAG, "Error message: " + e.getMessage());
-                e.printStackTrace();
-
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "Map unavailable: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
-            }
-        }).start();
     }
 
     private static class RegionalData {
