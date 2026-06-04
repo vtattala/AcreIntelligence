@@ -35,7 +35,8 @@ public class HomeActivity extends AppCompatActivity {
         View regionalGuideBtn = findViewById(R.id.regionalGuideBtn);
         View chatbotBtn = findViewById(R.id.chatbotBtn);
         View satelliteBtn = findViewById(R.id.satelliteBtn);
-        View spaceWeatherBtn = findViewById(R.id.spaceWeatherBtn); // NEW
+        View spaceWeatherBtn = findViewById(R.id.spaceWeatherBtn);
+        View droneBtn = findViewById(R.id.droneBtn);
 
         // Display welcome message
         welcomeText.setText(
@@ -101,10 +102,16 @@ public class HomeActivity extends AppCompatActivity {
             startActivity(satIntent);
         });
 
-        // Space Weather button - NEW
+        // Space Weather button
         spaceWeatherBtn.setOnClickListener(v -> {
             Intent spaceIntent = new Intent(HomeActivity.this, SpaceWeatherActivity.class);
             startActivity(spaceIntent);
+        });
+
+        // Drone Camera button
+        droneBtn.setOnClickListener(v -> {
+            Intent droneIntent = new Intent(HomeActivity.this, DroneActivity.class);
+            startActivity(droneIntent);
         });
     }
 }

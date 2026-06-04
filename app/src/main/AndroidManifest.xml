@@ -87,6 +87,8 @@
             android:name=".MainContainerActivity"
             android:exported="false" />
 
+        <activity android:name=".DroneActivity"/>
+
 
 
     </application>
