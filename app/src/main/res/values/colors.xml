@@ -20,4 +20,23 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Groundwater Predictor colors -->
+    <color name="primary">#0B5D5B</color>
+    <color name="primary_dark">#083D3C</color>
+    <color name="accent">#D0E9E7</color>
+    <color name="surface">#F4FAF9</color>
+    <color name="text_primary">#102A2A</color>
+    <color name="text_muted">#5A7372</color>
+    <color name="card_stroke">#D9E9E7</color>
+    <color name="banner_subtitle">#D7ECEA</color>
+    <color name="screen_bg">#F4F6FB</color>
+    <color name="card_bg">#FFFFFFFF</color>
+    <color name="muted_card_bg">#F0F4FA</color>
+    <color name="text_secondary">#556274</color>
+    <color name="button_bg">#256CE1</color>
+    <color name="button_text">#FFFFFFFF</color>
+    <color name="input_bg_fill">#EEF3F9</color>
+    <color name="input_stroke">#D1D9E7</color>
+    <color name="error">#B3261E</color>
 </resources>
