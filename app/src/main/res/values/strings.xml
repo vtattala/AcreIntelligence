@@ -1,4 +1,21 @@
 <resources>
     <string name="app_name">Acre Intelligence</string>
     <string name="default_web_client_id">730674807242-01t77ceh4vejgabrj41jigpucdb4sus0.apps.googleusercontent.com</string>
+    <string name="groundwater_app_name">Groundwater Predictor</string>
+    <string name="app_subtitle">Regional water intelligence for groundwater planning and long-range conditions.</string>
+    <string name="input_card_title">Run a groundwater forecast</string>
+    <string name="input_card_subtitle">Select a region and time range to predict groundwater levels.</string>
+    <string name="region_label">Region</string>
+    <string name="time_range_label">Time range</string>
+    <string name="start_date_label">Start date</string>
+    <string name="start_date_hint">YYYY-MM-DD</string>
+    <string name="end_date_label">End date</string>
+    <string name="end_date_hint">YYYY-MM-DD</string>
+    <string name="run_prediction">Run Prediction</string>
+    <string name="results_title">Prediction results</string>
+    <string name="results_ready">Choose filters above to generate a new forecast.</string>
+    <string name="default_region_result">Region: --</string>
+    <string name="default_summary">Groundwater Level: Normal</string>
+    <string name="default_trend">Trend overview will appear after prediction.</string>
+    <string name="heatmap_placeholder">Heatmap data will be visualized here in a future update.</string>
 </resources>

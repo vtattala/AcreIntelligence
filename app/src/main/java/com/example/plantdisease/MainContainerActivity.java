@@ -7,6 +7,8 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.waterproj.groundwaterpredictor.GroundwaterAppFragment;
+
 public class MainContainerActivity extends AppCompatActivity {
 
     private ViewPager2 viewPager;
@@ -24,7 +26,7 @@ public class MainContainerActivity extends AppCompatActivity {
 
         viewPager = findViewById(R.id.viewPager);
 
-        // Create adapter with 2 pages
+        // Create adapter with swipe pages
         ViewPagerAdapter adapter = new ViewPagerAdapter(this);
         viewPager.setAdapter(adapter);
 
@@ -32,7 +34,7 @@ public class MainContainerActivity extends AppCompatActivity {
         viewPager.setCurrentItem(0, false);
     }
 
-    // Adapter to manage the two fragments/pages
+    // Adapter to manage the swipe fragments/pages
     private class ViewPagerAdapter extends FragmentStateAdapter {
 
         public ViewPagerAdapter(FragmentActivity fa) {
@@ -41,7 +43,6 @@ public class MainContainerActivity extends AppCompatActivity {
 
         @Override
         public Fragment createFragment(int position) {
-            // Position 0 = Home, Position 1 = Space Weather
             if (position == 0) {
                 HomeFragment homeFragment = new HomeFragment();
 
@@ -53,14 +54,16 @@ public class MainContainerActivity extends AppCompatActivity {
                 homeFragment.setArguments(bundle);
 
                 return homeFragment;
-            } else {
+            } else if (position == 1) {
                 return new SpaceWeatherFragment();
+            } else {
+                return new GroundwaterAppFragment();
             }
         }
 
         @Override
         public int getItemCount() {
-            return 2; // Two pages total
+            return 3;
         }
     }
 }
