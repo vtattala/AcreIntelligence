@@ -9,12 +9,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:padding="12dp"
         android:gravity="center_vertical">
 
         <TextView
             android:text="🚁  Drone Camera"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textColor="#22C55E"
             android:textStyle="bold"
             android:layout_width="0dp"
@@ -25,29 +25,130 @@
             android:id="@+id/drone_status"
             android:text="Not connected"
             android:textColor="#6B7280"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
     </LinearLayout>
 
-    <ImageView
-        android:id="@+id/drone_feed"
+    <!-- Crop temperature input -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="8dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:text="Optimal °C:"
+            android:textColor="#22C55E"
+            android:textSize="13sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"/>
+
+        <EditText
+            android:id="@+id/input_temp_min"
+            android:hint="Min"
+            android:inputType="numberDecimal"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#6B7280"
+            android:backgroundTint="#1A5C3A"
+            android:textSize="13sp"
+            android:padding="6dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:text="20"/>
+
+        <TextView
+            android:text="to"
+            android:textColor="#6B7280"
+            android:textSize="13sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"/>
+
+        <EditText
+            android:id="@+id/input_temp_max"
+            android:hint="Max"
+            android:inputType="numberDecimal"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#6B7280"
+            android:backgroundTint="#1A5C3A"
+            android:textSize="13sp"
+            android:padding="6dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="30"/>
+
+        <Button
+            android:id="@+id/btn_apply_temp"
+            android:text="Apply"
+            android:backgroundTint="#22C55E"
+            android:textColor="#000000"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="#000000"
-        android:scaleType="fitCenter"
-        android:contentDescription="Drone camera feed"/>
+        android:layout_weight="1">
 
-    <Button
-        android:id="@+id/btn_connect_drone"
-        android:text="Connect to Drone"
-        android:backgroundTint="#22C55E"
-        android:textColor="#000000"
-        android:textStyle="bold"
-        android:layout_margin="16dp"
+        <ImageView
+            android:id="@+id/drone_feed"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#000000"
+            android:scaleType="fitCenter"
+            android:contentDescription="Drone camera feed"/>
+
+        <com.example.plantdisease.ThermalOverlayView
+            android:id="@+id/thermal_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"/>
+
+    </FrameLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <Button
+            android:id="@+id/btn_connect_drone"
+            android:text="Connect to Drone"
+            android:backgroundTint="#22C55E"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:layout_margin="8dp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
+
+        <Button
+            android:id="@+id/btn_thermal"
+            android:text="Thermal Off"
+            android:backgroundTint="#134D2E"
+            android:textColor="#22C55E"
+            android:layout_margin="8dp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
 
 </LinearLayout>
