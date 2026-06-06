@@ -9,19 +9,19 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
-import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DroneActivity extends AppCompatActivity {
 
-    private static final String STREAM_URL = "http://192.168.43.100:8080/stream";
-    private static final String HEALTH_URL  = "http://192.168.43.100:8080/health";
+    private static final String STREAM_URL = "http://192.168.68.121:8080/stream";
+    private static final String HEALTH_URL = "http://192.168.68.121:8080/health";
 
     private ImageView feedView;
     private TextView statusText;
@@ -35,11 +35,11 @@ public class DroneActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_drone);
 
-        feedView    = findViewById(R.id.drone_feed);
-        statusText  = findViewById(R.id.drone_status);
-        connectBtn  = findViewById(R.id.btn_connect_drone);
+        feedView = findViewById(R.id.drone_feed);
+        statusText = findViewById(R.id.drone_status);
+        connectBtn = findViewById(R.id.btn_connect_drone);
         mainHandler = new Handler(Looper.getMainLooper());
-        executor    = Executors.newFixedThreadPool(2);
+        executor = Executors.newFixedThreadPool(2);
 
         connectBtn.setOnClickListener(v -> {
             if (!streaming.get()) {
@@ -75,43 +75,43 @@ public class DroneActivity extends AppCompatActivity {
                 URL url = new URL(STREAM_URL);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setConnectTimeout(5000);
+                conn.setReadTimeout(10000);
                 conn.connect();
 
-                InputStream inputStream = new BufferedInputStream(conn.getInputStream());
-                ByteArrayOutputStream frameBuffer = new ByteArrayOutputStream();
-                byte[] buf = new byte[4096];
-                int bytesRead;
-                boolean inFrame = false;
-                boolean headersDone = false;
+                InputStream inputStream = conn.getInputStream();
+                ByteArrayOutputStream jpegBuffer = new ByteArrayOutputStream();
+                int b;
+                int prev = -1;
 
-                while (streaming.get() && (bytesRead = inputStream.read(buf)) != -1) {
-                    String chunk = new String(buf, 0, bytesRead);
+                while (streaming.get()) {
+                    b = inputStream.read();
+                    if (b == -1) break;
 
-                    if (chunk.contains("--frame")) {
-                        if (inFrame && frameBuffer.size() > 0) {
-                            byte[] jpegData = frameBuffer.toByteArray();
-                            Bitmap bmp = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.length);
+                    jpegBuffer.write(b);
+
+                    // Detect JPEG end marker 0xFF 0xD9
+                    if (prev == 0xFF && b == 0xD9) {
+                        byte[] jpegData = jpegBuffer.toByteArray();
+
+                        // Find JPEG start marker 0xFF 0xD8
+                        int start = -1;
+                        for (int i = 0; i < jpegData.length - 1; i++) {
+                            if ((jpegData[i] & 0xFF) == 0xFF && (jpegData[i + 1] & 0xFF) == 0xD8) {
+                                start = i;
+                                break;
+                            }
+                        }
+
+                        if (start >= 0) {
+                            final byte[] frame = Arrays.copyOfRange(jpegData, start, jpegData.length);
+                            Bitmap bmp = BitmapFactory.decodeByteArray(frame, 0, frame.length);
                             if (bmp != null) {
                                 mainHandler.post(() -> feedView.setImageBitmap(bmp));
                             }
                         }
-                        frameBuffer.reset();
-                        inFrame = true;
-                        headersDone = false;
-                        continue;
+                        jpegBuffer.reset();
                     }
-
-                    if (inFrame) {
-                        if (!headersDone && chunk.contains("\r\n\r\n")) {
-                            headersDone = true;
-                            int dataStart = chunk.indexOf("\r\n\r\n") + 4;
-                            if (dataStart < bytesRead) {
-                                frameBuffer.write(buf, dataStart, bytesRead - dataStart);
-                            }
-                        } else if (headersDone) {
-                            frameBuffer.write(buf, 0, bytesRead);
-                        }
-                    }
+                    prev = b;
                 }
                 conn.disconnect();
 
