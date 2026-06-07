@@ -1,6 +1,9 @@
 package com.example.plantdisease;
 
 import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -16,6 +19,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -30,7 +34,10 @@ public class SpaceWeatherFragment extends Fragment {
     private TextView f107Value, f107Status, geomagneticStatus, radiationStatus;
     private TextView cropImpact, satelliteImpact, aiSummary;
 
-    private final OkHttpClient httpClient = new OkHttpClient();
+    private final OkHttpClient httpClient = new OkHttpClient.Builder()
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .readTimeout(12, TimeUnit.SECONDS)
+            .build();
 
     // store last values for AI prompt
     private double lastKpIndex = Double.NaN;
@@ -98,7 +105,7 @@ public class SpaceWeatherFragment extends Fragment {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         kpIndexValue.setText("Error");
-                        kpStatus.setText("Unable to fetch data");
+                        kpStatus.setText("Unable to fetch data: " + describeNetworkFailure(e));
                         cropImpact.setText("Unable to determine crop impact");
                         aiSummary.setText("Agent analysis unavailable.");
                     });
@@ -125,7 +132,7 @@ public class SpaceWeatherFragment extends Fragment {
                 Log.e("SOLAR_WIND", "Failed to fetch solar wind", e);
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        satelliteImpact.setText("Unable to determine satellite impact");
+                        satelliteImpact.setText("Unable to determine satellite impact: " + describeNetworkFailure(e));
                         aiSummary.setText("Agent analysis unavailable.");
                     });
                 }
@@ -341,6 +348,40 @@ public class SpaceWeatherFragment extends Fragment {
                         satelliteImpact == null ? "" : String.valueOf(satelliteImpact.getText())
                 )
         );
+    }
+
+    private String describeNetworkFailure(IOException exception) {
+        String message = exception.getMessage();
+        String reason = message == null || message.isEmpty()
+                ? exception.getClass().getSimpleName()
+                : message;
+        String network = describeActiveNetwork();
+        return reason + " | " + network;
+    }
+
+    private String describeActiveNetwork() {
+        if (getContext() == null) {
+            return "network unknown";
+        }
+        ConnectivityManager manager = (ConnectivityManager)
+                getContext().getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+        if (manager == null) {
+            return "network manager unavailable";
+        }
+        Network network = manager.getActiveNetwork();
+        if (network == null) {
+            return "no active network";
+        }
+        NetworkCapabilities capabilities = manager.getNetworkCapabilities(network);
+        if (capabilities == null) {
+            return "network has no capabilities";
+        }
+        boolean wifi = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
+        boolean cellular = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR);
+        boolean internet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        boolean validated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+        return "wifi=" + wifi + ", cellular=" + cellular
+                + ", internet=" + internet + ", validated=" + validated;
     }
 }
 

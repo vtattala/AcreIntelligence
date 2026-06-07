@@ -10,9 +10,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -26,20 +29,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DroneActivity extends AppCompatActivity {
 
-    private static final String STREAM_URL  = "http://192.168.68.121:8080/stream";
-    private static final String HEALTH_URL  = "http://192.168.68.121:8080/health";
+    private static final String STREAM_URL = "http://192.168.68.121:8080/stream";
+    private static final String HEALTH_URL = "http://192.168.68.121:8080/health";
     private static final String THERMAL_URL = "http://192.168.68.121:8080/thermal";
 
     private ImageView feedView;
     private TextView statusText;
-    private Button connectBtn, thermalBtn, cameraLayerBtn;
+    private Button connectBtn;
+    private Button thermalBtn;
+    private Button cameraLayerBtn;
     private ThermalOverlayView thermalOverlay;
-    private EditText inputTempMin, inputTempMax;
+    private EditText inputTempMin;
+    private EditText inputTempMax;
+    private EditText inputAirTemp;
     private ExecutorService executor;
     private Handler mainHandler;
-    private AtomicBoolean streaming = new AtomicBoolean(false);
-    private AtomicBoolean thermalOn = new AtomicBoolean(false);
-    private AtomicBoolean thermalPolling = new AtomicBoolean(false);
+    private final AtomicBoolean streaming = new AtomicBoolean(false);
+    private final AtomicBoolean thermalOn = new AtomicBoolean(false);
     private boolean cameraLayerOn = true;
 
     @Override
@@ -47,29 +53,19 @@ public class DroneActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_drone);
 
-        feedView       = findViewById(R.id.drone_feed);
-        statusText     = findViewById(R.id.drone_status);
-        connectBtn     = findViewById(R.id.btn_connect_drone);
-        thermalBtn     = findViewById(R.id.btn_thermal);
+        feedView = findViewById(R.id.drone_feed);
+        statusText = findViewById(R.id.drone_status);
+        connectBtn = findViewById(R.id.btn_connect_drone);
+        thermalBtn = findViewById(R.id.btn_thermal);
         cameraLayerBtn = findViewById(R.id.btn_camera_layer);
         thermalOverlay = findViewById(R.id.thermal_overlay);
-        inputTempMin   = findViewById(R.id.input_temp_min);
-        inputTempMax   = findViewById(R.id.input_temp_max);
-        mainHandler    = new Handler(Looper.getMainLooper());
-        executor       = Executors.newFixedThreadPool(3);
+        inputTempMin = findViewById(R.id.input_temp_min);
+        inputTempMax = findViewById(R.id.input_temp_max);
+        inputAirTemp = findViewById(R.id.input_air_temp);
+        mainHandler = new Handler(Looper.getMainLooper());
+        executor = Executors.newFixedThreadPool(3);
 
-        // Apply custom temperature range
-        findViewById(R.id.btn_apply_temp).setOnClickListener(v -> {
-            try {
-                float min = Float.parseFloat(inputTempMin.getText().toString());
-                float max = Float.parseFloat(inputTempMax.getText().toString());
-                if (min < max) {
-                    thermalOverlay.setOptimalRange(min, max);
-                }
-            } catch (NumberFormatException e) {
-                // Invalid input, ignore
-            }
-        });
+        findViewById(R.id.btn_apply_temp).setOnClickListener(v -> applyThermalSettings());
 
         connectBtn.setOnClickListener(v -> {
             if (!streaming.get()) {
@@ -89,11 +85,12 @@ public class DroneActivity extends AppCompatActivity {
         thermalBtn.setOnClickListener(v -> {
             if (!thermalOn.get()) {
                 thermalOn.set(true);
+                applyThermalSettings();
                 thermalBtn.setText("Thermal On");
                 thermalBtn.setBackgroundTintList(
                         android.content.res.ColorStateList.valueOf(
                                 android.graphics.Color.parseColor("#22C55E")));
-                ensureThermalPolling();
+                startThermalPolling();
             } else {
                 thermalOn.set(false);
                 thermalOverlay.clearThermal();
@@ -101,15 +98,28 @@ public class DroneActivity extends AppCompatActivity {
                 thermalBtn.setBackgroundTintList(
                         android.content.res.ColorStateList.valueOf(
                                 android.graphics.Color.parseColor("#134D2E")));
-                thermalPolling.set(false);
             }
             applyLayerVisibility();
         });
     }
 
+    private void applyThermalSettings() {
+        try {
+            float min = Float.parseFloat(inputTempMin.getText().toString());
+            float max = Float.parseFloat(inputTempMax.getText().toString());
+            float air = Float.parseFloat(inputAirTemp.getText().toString());
+            if (min < max) {
+                thermalOverlay.setOptimalRange(min, max);
+                thermalOverlay.setAirTemperature(air);
+            }
+        } catch (NumberFormatException ignored) {
+            setStatus("Enter valid temperature numbers.");
+        }
+    }
+
     private void startStream() {
         streaming.set(true);
-        setStatus("⏳ Connecting to drone...");
+        setStatus("Connecting to drone...");
 
         executor.submit(() -> {
             try {
@@ -118,13 +128,13 @@ public class DroneActivity extends AppCompatActivity {
                 healthConn.setConnectTimeout(3000);
                 healthConn.connect();
                 if (healthConn.getResponseCode() != 200) {
-                    setStatus("❌ Pi not reachable. Is hotspot on?");
+                    setStatus("Pi not reachable. Is hotspot on?");
                     streaming.set(false);
                     return;
                 }
                 healthConn.disconnect();
 
-                setStatus("🟢 Drone feed live");
+                setStatus("Drone feed live");
 
                 URL url = new URL(STREAM_URL);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -134,41 +144,44 @@ public class DroneActivity extends AppCompatActivity {
 
                 InputStream inputStream = conn.getInputStream();
                 ByteArrayOutputStream jpegBuffer = new ByteArrayOutputStream();
-                int b;
-                int prev = -1;
+                int previousByte = -1;
 
                 while (streaming.get()) {
-                    b = inputStream.read();
-                    if (b == -1) break;
-                    jpegBuffer.write(b);
-                    if (prev == 0xFF && b == 0xD9) {
+                    int currentByte = inputStream.read();
+                    if (currentByte == -1) {
+                        break;
+                    }
+
+                    jpegBuffer.write(currentByte);
+                    if (previousByte == 0xFF && currentByte == 0xD9) {
                         byte[] jpegData = jpegBuffer.toByteArray();
                         int start = -1;
                         for (int i = 0; i < jpegData.length - 1; i++) {
-                            if ((jpegData[i] & 0xFF) == 0xFF && (jpegData[i+1] & 0xFF) == 0xD8) {
+                            if ((jpegData[i] & 0xFF) == 0xFF
+                                    && (jpegData[i + 1] & 0xFF) == 0xD8) {
                                 start = i;
                                 break;
                             }
                         }
+
                         if (start >= 0) {
-                            final byte[] frame = Arrays.copyOfRange(jpegData, start, jpegData.length);
-                            Bitmap bmp = BitmapFactory.decodeByteArray(frame, 0, frame.length);
-                            if (bmp != null) {
+                            byte[] frame = Arrays.copyOfRange(jpegData, start, jpegData.length);
+                            Bitmap bitmap = BitmapFactory.decodeByteArray(frame, 0, frame.length);
+                            if (bitmap != null) {
                                 mainHandler.post(() -> {
                                     if (cameraLayerOn) {
-                                        feedView.setImageBitmap(bmp);
+                                        feedView.setImageBitmap(bitmap);
                                     }
                                 });
                             }
                         }
                         jpegBuffer.reset();
                     }
-                    prev = b;
+                    previousByte = currentByte;
                 }
                 conn.disconnect();
-
             } catch (Exception e) {
-                setStatus("❌ Connection failed: " + e.getMessage());
+                setStatus("Connection failed: " + e.getMessage());
                 streaming.set(false);
                 mainHandler.post(() -> connectBtn.setText("Connect to Drone"));
             }
@@ -212,12 +225,9 @@ public class DroneActivity extends AppCompatActivity {
         }
     }
 
-    private void ensureThermalPolling() {
-        if (thermalPolling.getAndSet(true)) {
-            return;
-        }
+    private void startThermalPolling() {
         executor.submit(() -> {
-            while (thermalPolling.get()) {
+            while (thermalOn.get()) {
                 try {
                     URL url = new URL(THERMAL_URL);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -227,40 +237,42 @@ public class DroneActivity extends AppCompatActivity {
 
                     BufferedReader reader = new BufferedReader(
                             new InputStreamReader(conn.getInputStream()));
-                    StringBuilder sb = new StringBuilder();
+                    StringBuilder response = new StringBuilder();
                     String line;
-                    while ((line = reader.readLine()) != null) sb.append(line);
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
                     conn.disconnect();
 
-                    JSONObject json = new JSONObject(sb.toString());
+                    JSONObject json = new JSONObject(response.toString());
                     JSONArray rows = json.getJSONArray("temps");
                     float min = (float) json.getDouble("min");
                     float max = (float) json.getDouble("max");
 
                     float[][] data = new float[24][32];
-                    for (int r = 0; r < 24; r++) {
-                        JSONArray row = rows.getJSONArray(r);
-                        for (int c = 0; c < 32; c++) {
-                            data[r][c] = (float) row.getDouble(c);
+                    for (int rowIndex = 0; rowIndex < 24; rowIndex++) {
+                        JSONArray row = rows.getJSONArray(rowIndex);
+                        for (int columnIndex = 0; columnIndex < 32; columnIndex++) {
+                            data[rowIndex][columnIndex] = (float) row.getDouble(columnIndex);
                         }
                     }
 
                     mainHandler.post(() -> thermalOverlay.updateThermal(data, min, max));
                     Thread.sleep(500);
-
                 } catch (Exception e) {
-                    try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ignored) {
+                    }
                 }
             }
-            thermalPolling.set(false);
         });
     }
 
     private void stopStream() {
         streaming.set(false);
         thermalOn.set(false);
-        thermalPolling.set(false);
-        setStatus("⚪ Disconnected");
+        setStatus("Disconnected");
         mainHandler.post(() -> {
             thermalOverlay.clearThermal();
             thermalOverlay.setVisibility(View.GONE);
@@ -268,6 +280,10 @@ public class DroneActivity extends AppCompatActivity {
             if (cameraLayerOn) {
                 feedView.setVisibility(View.VISIBLE);
             }
+            thermalBtn.setText("Thermal Off");
+            thermalBtn.setBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(
+                            android.graphics.Color.parseColor("#134D2E")));
         });
     }
 

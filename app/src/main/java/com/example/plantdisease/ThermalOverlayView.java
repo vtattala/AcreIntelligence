@@ -20,6 +20,9 @@ public class ThermalOverlayView extends View {
     private float optimalLow  = 20f;
     private float optimalHigh = 30f;
     private float stressHigh  = 35f;
+    private float airTemperature = 25f;
+    private float mildDelta = 2f;
+    private float severeDelta = 5f;
 
     public ThermalOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -37,6 +40,11 @@ public class ThermalOverlayView extends View {
         this.optimalLow  = low;
         this.optimalHigh = high;
         this.stressHigh  = high + 5f;
+        invalidate();
+    }
+
+    public void setAirTemperature(float airTemperature) {
+        this.airTemperature = airTemperature;
         invalidate();
     }
 
@@ -90,9 +98,10 @@ public class ThermalOverlayView extends View {
                 float top = offsetY + r * cellH;
                 canvas.drawRect(left, top, left + cellW + 1, top + cellH + 1, paint);
 
-                if (temp < optimalLow) cold++;
-                else if (temp <= optimalHigh) healthy++;
-                else if (temp <= stressHigh) mild++;
+                int stressLevel = getStressLevel(temp);
+                if (stressLevel == 0) cold++;
+                else if (stressLevel == 1) healthy++;
+                else if (stressLevel == 2) mild++;
                 else severe++;
             }
         }
@@ -114,7 +123,8 @@ public class ThermalOverlayView extends View {
                 offsetX + 8, offsetY + imageH - 58, labelPaint);
 
         canvas.drawText(
-                String.format("Optimal range: %.0f°C – %.0f°C", optimalLow, optimalHigh),
+                String.format("Air: %.0fC  Leaf-air stress: +%.0fC mild, +%.0fC severe",
+                        airTemperature, mildDelta, severeDelta),
                 offsetX + 8, offsetY + imageH - 35, labelPaint);
 
         if (severePercent > 20) {
@@ -133,15 +143,31 @@ public class ThermalOverlayView extends View {
     }
 
     private int tempToRiskColor(float temp) {
-        if (temp < optimalLow) {
+        int stressLevel = getStressLevel(temp);
+        if (stressLevel == 0) {
             return Color.argb(200, 0, 100, 255);
-        } else if (temp <= optimalHigh) {
+        } else if (stressLevel == 1) {
             return Color.argb(200, 0, 200, 50);
-        } else if (temp <= stressHigh) {
-            float t = (temp - optimalHigh) / (stressHigh - optimalHigh);
+        } else if (stressLevel == 2) {
+            float delta = Math.max(0f, temp - airTemperature);
+            float t = Math.max(0f, Math.min(1f, (delta - mildDelta) / (severeDelta - mildDelta)));
             return Color.argb(200, (int)(255 * t), (int)(200 * (1 - t) + 55), 0);
         } else {
             return Color.argb(200, 255, 0, 0);
         }
+    }
+
+    private int getStressLevel(float leafTemp) {
+        float leafAirDelta = leafTemp - airTemperature;
+        if (leafTemp < optimalLow) {
+            return 0;
+        }
+        if (leafAirDelta > severeDelta || leafTemp > stressHigh) {
+            return 3;
+        }
+        if (leafAirDelta > mildDelta || leafTemp > optimalHigh) {
+            return 2;
+        }
+        return 1;
     }
 }
