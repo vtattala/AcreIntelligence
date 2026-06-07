@@ -1,6 +1,7 @@
 package com.example.plantdisease;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -40,10 +41,14 @@ public class SatelliteActivity extends AppCompatActivity {
 
     private TextView regionText, vegetationHealthText, moistureText, evapText;
     private EditText latInput, lonInput;
-    private Button useCurrentLocationBtn, fetchDataBtn;
+    private Button useCurrentLocationBtn, fetchDataBtn, openAcreAgentButton;
 
     private FusedLocationProviderClient fusedLocationClient;
     private final OkHttpClient httpClient = new OkHttpClient();
+    private double latestVegetationHealth = Double.NaN;
+    private double latestSoilMoisture = Double.NaN;
+    private double latestEvapotranspiration = Double.NaN;
+    private String latestRegion = "Unknown";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,12 +64,16 @@ public class SatelliteActivity extends AppCompatActivity {
         lonInput = findViewById(R.id.lonInput);
         useCurrentLocationBtn = findViewById(R.id.useCurrentLocationBtn);
         fetchDataBtn = findViewById(R.id.fetchDataBtn);
+        openAcreAgentButton = findViewById(R.id.openAcreAgentButton);
 
         // Initialize location service
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         // Button to use current device location
         useCurrentLocationBtn.setOnClickListener(v -> requestLocationPermission());
+        openAcreAgentButton.setOnClickListener(v ->
+                startActivity(new Intent(this, AcreAgentActivity.class))
+        );
 
         // Button to fetch data for manually entered coordinates
         fetchDataBtn.setOnClickListener(v -> {
@@ -88,7 +97,8 @@ public class SatelliteActivity extends AppCompatActivity {
                 }
 
                 // Update region display
-                regionText.setText("Region: " + String.format("%.4f", lat) + ", " + String.format("%.4f", lon));
+                latestRegion = String.format(Locale.US, "%.4f, %.4f", lat, lon);
+                regionText.setText("Region: " + latestRegion);
 
                 // Fetch data for this location
                 fetchAllData(lat, lon);
@@ -147,7 +157,8 @@ public class SatelliteActivity extends AppCompatActivity {
                 double lon = location.getLongitude();
 
                 // Display location on screen and in input fields
-                regionText.setText("Region: " + String.format("%.4f", lat) + ", " + String.format("%.4f", lon));
+                latestRegion = String.format(Locale.US, "%.4f, %.4f", lat, lon);
+                regionText.setText("Region: " + latestRegion);
                 latInput.setText(String.format("%.4f", lat));
                 lonInput.setText(String.format("%.4f", lon));
 
@@ -212,11 +223,14 @@ public class SatelliteActivity extends AppCompatActivity {
             // Get first value from each array (current hour)
             double topSoil = moisture.getDouble(0);
             double evapRate = evap.getDouble(0);
+            latestSoilMoisture = topSoil;
+            latestEvapotranspiration = evapRate;
 
             // Update UI on main thread
             runOnUiThread(() -> {
                 moistureText.setText("Soil Moisture: " + String.format("%.3f", topSoil) + " m³/m³");
                 evapText.setText("Evapotranspiration: " + String.format("%.2f", evapRate) + " mm/day");
+                publishSatelliteStateIfReady();
             });
 
         } catch (Exception e) {
@@ -305,6 +319,7 @@ public class SatelliteActivity extends AppCompatActivity {
                 double healthIndex = totalValue / count;
 
                 double finalValue = healthIndex;
+                latestVegetationHealth = finalValue;
                 runOnUiThread(() -> {
                     vegetationHealthText.setText("Vegetation Health: " + String.format("%.3f", finalValue));
 
@@ -319,6 +334,7 @@ public class SatelliteActivity extends AppCompatActivity {
                         // Red = sparse/stressed vegetation
                         vegetationHealthText.setTextColor(Color.parseColor("#C62828"));
                     }
+                    publishSatelliteStateIfReady();
                 });
             } else {
                 runOnUiThread(() -> vegetationHealthText.setText("Vegetation Health: No data available"));
@@ -329,6 +345,23 @@ public class SatelliteActivity extends AppCompatActivity {
             Log.e("NASA_PARSE", "Parse error: " + e.getMessage());
             runOnUiThread(() -> vegetationHealthText.setText("Vegetation Health: Parse error"));
         }
+    }
+
+    private void publishSatelliteStateIfReady() {
+        if (Double.isNaN(latestVegetationHealth)
+                || Double.isNaN(latestSoilMoisture)
+                || Double.isNaN(latestEvapotranspiration)) {
+            return;
+        }
+
+        AcreAgentRepository.getInstance().updateSatellite(
+                new AcreAgentRepository.SatelliteState(
+                        latestRegion,
+                        latestVegetationHealth,
+                        latestSoilMoisture,
+                        latestEvapotranspiration
+                )
+        );
     }
 
     // ---------------- PERMISSION CALLBACK ----------------
@@ -351,3 +384,4 @@ public class SatelliteActivity extends AppCompatActivity {
         }
     }
 }
+

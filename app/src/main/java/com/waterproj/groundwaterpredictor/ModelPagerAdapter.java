@@ -26,7 +26,7 @@ public class ModelPagerAdapter extends FragmentStateAdapter {
             return new RainfallPredictionFragment();
         }
 
-        return new SoilMoisturePredictionFragment();
+        return new DroneMappingFragment();
     }
 
     @Override

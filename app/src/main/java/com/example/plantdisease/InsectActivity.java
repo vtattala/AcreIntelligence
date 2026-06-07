@@ -11,6 +11,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.view.View;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,11 +21,12 @@ public class InsectActivity extends AppCompatActivity {
 
     private static final String TAG = "InsectActivity";
     private ImageView imageView;
-    private TextView resultText;
+    private TextView resultText, insectAgentText;
     private ProgressBar progressBar;
-    private Button cameraBtn, galleryBtn, backBtn;
+    private Button cameraBtn, galleryBtn, backBtn, insectAgentBtn;
     private Bitmap selectedBitmap;
     private InsectModel insectModel;
+    private InsectModel.InsectPrediction latestPrediction;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,10 +37,25 @@ public class InsectActivity extends AppCompatActivity {
 
         imageView = findViewById(R.id.imageView);
         resultText = findViewById(R.id.resultText);
+        insectAgentText = findViewById(R.id.insectAgentText);
         progressBar = findViewById(R.id.progressBar);
         cameraBtn = findViewById(R.id.cameraBtn);
         galleryBtn = findViewById(R.id.galleryBtn);
         backBtn = findViewById(R.id.backBtn);
+        insectAgentBtn = findViewById(R.id.insectAgentBtn);
+        insectAgentText.setVisibility(View.GONE);
+        insectAgentBtn.setVisibility(View.GONE);
+        insectAgentBtn.setOnClickListener(v -> {
+            if (latestPrediction != null) {
+                insectAgentText.setText(buildInsectAgentAdvice(
+                        latestPrediction.insectName,
+                        latestPrediction.confidence,
+                        latestPrediction.fact1,
+                        latestPrediction.fact2
+                ));
+                insectAgentText.setVisibility(View.VISIBLE);
+            }
+        });
 
         // Load model
         resultText.setText("Loading insect model...");
@@ -115,6 +132,8 @@ public class InsectActivity extends AppCompatActivity {
 
         progressBar.setVisibility(ProgressBar.VISIBLE);
         resultText.setText("🔍 Identifying insect...");
+        insectAgentText.setVisibility(View.GONE);
+        insectAgentBtn.setVisibility(View.GONE);
         Log.i(TAG, "Starting prediction...");
 
         new Thread(() -> {
@@ -124,12 +143,22 @@ public class InsectActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     progressBar.setVisibility(ProgressBar.GONE);
                     if (prediction != null) {
+                        latestPrediction = prediction;
                         String result = "Insect: " + prediction.insectName + "\n\n" +
                                 "Confidence: " + String.format("%.2f%%", prediction.confidence * 100) + "\n\n" +
                                 "Impact on Crops:\n" +
                                 "• " + prediction.fact1 + "\n" +
                                 "• " + prediction.fact2;
                         resultText.setText(result);
+                        insectAgentBtn.setVisibility(View.VISIBLE);
+                        AcreAgentRepository.getInstance().updateInsect(
+                                new AcreAgentRepository.InsectState(
+                                        prediction.insectName,
+                                        prediction.confidence,
+                                        prediction.fact1,
+                                        prediction.fact2
+                                )
+                        );
                         Log.i(TAG, "Prediction successful");
                     } else {
                         resultText.setText("❌ Prediction failed");
@@ -152,5 +181,52 @@ public class InsectActivity extends AppCompatActivity {
         if (insectModel != null) {
             insectModel.close();
         }
+    }
+
+    private String buildInsectAgentAdvice(String insectName, float confidence, String fact1, String fact2) {
+        String normalized = insectName == null ? "" : insectName.toLowerCase();
+        String confidenceLabel = confidence >= 0.80f ? "High confidence"
+                : confidence >= 0.55f ? "Moderate confidence"
+                : "Low confidence";
+        boolean aphid = normalized.contains("aphid");
+        boolean beetle = normalized.contains("beetle");
+        boolean caterpillar = normalized.contains("caterpillar") || normalized.contains("worm");
+        boolean mite = normalized.contains("mite");
+
+        StringBuilder advice = new StringBuilder();
+        advice.append("Pest Agent\n\n");
+        advice.append("Primary read: ").append(confidenceLabel)
+                .append(" model match for ").append(insectName).append(".\n\n");
+        advice.append("Model-provided crop impact: ").append(fact1).append(" ").append(fact2).append("\n\n");
+        advice.append("Risk level: ").append(confidence >= 0.80f ? "High" : confidence >= 0.55f ? "Medium" : "Uncertain")
+                .append(". Confirm with field scouting before treatment.\n\n");
+        advice.append("Agent reasoning: A pest diagnosis is useful only if the insect and the field damage match. The next step is to connect the insect ID with feeding signs, population size, and crop stage.\n\n");
+
+        if (aphid) {
+            advice.append("Likely pattern: Aphids cluster on tender growth and can cause curling, honeydew, and virus spread.\n\n");
+            advice.append("What to inspect: Leaf undersides, sticky honeydew, curling leaves, ants, and clusters on new growth.\n\n");
+            advice.append("Action: Wash off small populations, protect beneficial insects, and monitor spread.");
+        } else if (beetle) {
+            advice.append("Likely pattern: Beetle damage often appears as chewing, skeletonizing, or edge feeding.\n\n");
+            advice.append("What to inspect: Chewed leaf edges, holes, larvae, and field-edge concentration.\n\n");
+            advice.append("Action: Scout nearby plants, remove visible pests if practical, and track damage rate.");
+        } else if (caterpillar) {
+            advice.append("Likely pattern: Caterpillars can cause rapid defoliation when populations build.\n\n");
+            advice.append("What to inspect: Fresh chewing, frass, rolled leaves, and larvae hidden in the canopy.\n\n");
+            advice.append("Action: Remove larvae where possible and prioritize young plants or high-value rows.");
+        } else if (mite) {
+            advice.append("Likely pattern: Mites flare during hot, dry stress and may be hard to see without close inspection.\n\n");
+            advice.append("What to inspect: Fine stippling, webbing, dusty leaf surfaces, and hot dry zones.\n\n");
+            advice.append("Action: Reduce plant stress, avoid unnecessary broad sprays, and recheck after irrigation.");
+        } else {
+            advice.append("What to inspect: Feeding damage, pest count per plant, and whether damage is spreading.\n\n");
+            advice.append("Action: Re-scan if confidence is low and use the Acre Agent to combine pest, disease, and water stress.");
+        }
+
+        advice.append("\n\nEscalate if: pest counts are rising, damage reaches new growth, multiple rows are affected, or young crops are losing leaf area.");
+        if (confidence < 0.55f) {
+            advice.append("\n\nUncertainty: Confidence is low, so capture a closer, brighter image before acting.");
+        }
+        return advice.toString();
     }
 }

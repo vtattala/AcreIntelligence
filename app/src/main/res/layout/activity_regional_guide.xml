@@ -65,6 +65,18 @@
         android:text="← Back to Menu"
         android:textSize="14sp" />
 
+    <Button
+        android:id="@+id/openAcreAgentButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginBottom="16dp"
+        android:backgroundTint="#2E7D32"
+        android:text="Open Acre Agent"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
     <!-- Progress Bar -->
     <ProgressBar
         android:id="@+id/progressBar"

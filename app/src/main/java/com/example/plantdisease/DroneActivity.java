@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -31,13 +32,15 @@ public class DroneActivity extends AppCompatActivity {
 
     private ImageView feedView;
     private TextView statusText;
-    private Button connectBtn, thermalBtn;
+    private Button connectBtn, thermalBtn, cameraLayerBtn;
     private ThermalOverlayView thermalOverlay;
     private EditText inputTempMin, inputTempMax;
     private ExecutorService executor;
     private Handler mainHandler;
     private AtomicBoolean streaming = new AtomicBoolean(false);
     private AtomicBoolean thermalOn = new AtomicBoolean(false);
+    private AtomicBoolean thermalPolling = new AtomicBoolean(false);
+    private boolean cameraLayerOn = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +51,7 @@ public class DroneActivity extends AppCompatActivity {
         statusText     = findViewById(R.id.drone_status);
         connectBtn     = findViewById(R.id.btn_connect_drone);
         thermalBtn     = findViewById(R.id.btn_thermal);
+        cameraLayerBtn = findViewById(R.id.btn_camera_layer);
         thermalOverlay = findViewById(R.id.thermal_overlay);
         inputTempMin   = findViewById(R.id.input_temp_min);
         inputTempMax   = findViewById(R.id.input_temp_max);
@@ -77,23 +81,29 @@ public class DroneActivity extends AppCompatActivity {
             }
         });
 
+        cameraLayerBtn.setOnClickListener(v -> {
+            cameraLayerOn = !cameraLayerOn;
+            applyLayerVisibility();
+        });
+
         thermalBtn.setOnClickListener(v -> {
             if (!thermalOn.get()) {
                 thermalOn.set(true);
-                thermalOverlay.setVisibility(android.view.View.VISIBLE);
                 thermalBtn.setText("Thermal On");
                 thermalBtn.setBackgroundTintList(
                         android.content.res.ColorStateList.valueOf(
                                 android.graphics.Color.parseColor("#22C55E")));
-                startThermalPolling();
+                ensureThermalPolling();
             } else {
                 thermalOn.set(false);
-                thermalOverlay.setVisibility(android.view.View.GONE);
+                thermalOverlay.clearThermal();
                 thermalBtn.setText("Thermal Off");
                 thermalBtn.setBackgroundTintList(
                         android.content.res.ColorStateList.valueOf(
                                 android.graphics.Color.parseColor("#134D2E")));
+                thermalPolling.set(false);
             }
+            applyLayerVisibility();
         });
     }
 
@@ -144,7 +154,11 @@ public class DroneActivity extends AppCompatActivity {
                             final byte[] frame = Arrays.copyOfRange(jpegData, start, jpegData.length);
                             Bitmap bmp = BitmapFactory.decodeByteArray(frame, 0, frame.length);
                             if (bmp != null) {
-                                mainHandler.post(() -> feedView.setImageBitmap(bmp));
+                                mainHandler.post(() -> {
+                                    if (cameraLayerOn) {
+                                        feedView.setImageBitmap(bmp);
+                                    }
+                                });
                             }
                         }
                         jpegBuffer.reset();
@@ -161,9 +175,49 @@ public class DroneActivity extends AppCompatActivity {
         });
     }
 
-    private void startThermalPolling() {
+    private void applyLayerVisibility() {
+        if (cameraLayerOn) {
+            feedView.setVisibility(View.VISIBLE);
+            cameraLayerBtn.setText("Camera On");
+            cameraLayerBtn.setTextColor(android.graphics.Color.parseColor("#22C55E"));
+            cameraLayerBtn.setBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(
+                            android.graphics.Color.parseColor("#134D2E")));
+        } else {
+            feedView.setImageDrawable(null);
+            feedView.setVisibility(View.GONE);
+            cameraLayerBtn.setText("Camera Off");
+            cameraLayerBtn.setTextColor(android.graphics.Color.BLACK);
+            cameraLayerBtn.setBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(
+                            android.graphics.Color.parseColor("#22C55E")));
+        }
+
+        if (thermalOn.get()) {
+            thermalOverlay.setAlpha(cameraLayerOn ? 0.65f : 1f);
+            thermalOverlay.setVisibility(View.VISIBLE);
+        } else {
+            thermalOverlay.clearThermal();
+            thermalOverlay.setVisibility(View.GONE);
+        }
+
+        if (!cameraLayerOn && thermalOn.get()) {
+            setStatus("Thermal-only crop health view");
+        } else if (cameraLayerOn && thermalOn.get()) {
+            setStatus("Camera plus thermal overlay");
+        } else if (cameraLayerOn) {
+            setStatus(streaming.get() ? "Drone feed live" : "Camera-only view");
+        } else {
+            setStatus("Camera layer hidden");
+        }
+    }
+
+    private void ensureThermalPolling() {
+        if (thermalPolling.getAndSet(true)) {
+            return;
+        }
         executor.submit(() -> {
-            while (thermalOn.get()) {
+            while (thermalPolling.get()) {
                 try {
                     URL url = new URL(THERMAL_URL);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -198,14 +252,23 @@ public class DroneActivity extends AppCompatActivity {
                     try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
                 }
             }
+            thermalPolling.set(false);
         });
     }
 
     private void stopStream() {
         streaming.set(false);
         thermalOn.set(false);
+        thermalPolling.set(false);
         setStatus("⚪ Disconnected");
-        mainHandler.post(() -> thermalOverlay.setVisibility(android.view.View.GONE));
+        mainHandler.post(() -> {
+            thermalOverlay.clearThermal();
+            thermalOverlay.setVisibility(View.GONE);
+            feedView.setImageDrawable(null);
+            if (cameraLayerOn) {
+                feedView.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     private void setStatus(String msg) {

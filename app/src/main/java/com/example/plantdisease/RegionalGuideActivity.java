@@ -1,5 +1,6 @@
 package com.example.plantdisease;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -30,7 +31,7 @@ public class RegionalGuideActivity extends AppCompatActivity {
     private static final String WEATHER_API_KEY = "1cb1a88483037ec05c04e9eee9bd5521";
 
     private EditText locationInput;
-    private Button searchBtn, backBtn;
+    private Button searchBtn, backBtn, openAcreAgentButton;
     private TextView resultText;
     private ImageView mapView;
     private ProgressBar progressBar;
@@ -44,6 +45,7 @@ public class RegionalGuideActivity extends AppCompatActivity {
         locationInput = findViewById(R.id.locationInput);
         searchBtn = findViewById(R.id.searchBtn);
         backBtn = findViewById(R.id.backBtn);
+        openAcreAgentButton = findViewById(R.id.openAcreAgentButton);
         resultText = findViewById(R.id.resultText);
         mapView = findViewById(R.id.mapView);
         progressBar = findViewById(R.id.progressBar);
@@ -51,6 +53,9 @@ public class RegionalGuideActivity extends AppCompatActivity {
 
         searchBtn.setOnClickListener(v -> searchRegion());
         backBtn.setOnClickListener(v -> finish());
+        openAcreAgentButton.setOnClickListener(v ->
+                startActivity(new Intent(this, AcreAgentActivity.class))
+        );
     }
 
     private void searchRegion() {
@@ -254,6 +259,15 @@ public class RegionalGuideActivity extends AppCompatActivity {
                 .append(new SimpleDateFormat("MMM dd, HH:mm", Locale.US).format(new Date()));
 
         resultText.setText(result.toString());
+        AcreAgentRepository.getInstance().updateRegional(
+                new AcreAgentRepository.RegionalState(
+                        data.location + ", " + data.country,
+                        data.climateZone,
+                        data.temperature,
+                        data.humidity,
+                        data.currentAdvice
+                )
+        );
         scrollView.smoothScrollTo(0, 0);
     }
 

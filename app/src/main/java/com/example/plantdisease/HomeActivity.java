@@ -30,13 +30,10 @@ public class HomeActivity extends AppCompatActivity {
         plantDiseaseBtn = findViewById(R.id.plantDiseaseBtn);
         insectDetectionBtn = findViewById(R.id.insectDetectionBtn);
         View plantInfoBtn = findViewById(R.id.plantInfoBtn);
-        View notepadBtn = findViewById(R.id.notepadBtn);
         View encyclopediaBtn = findViewById(R.id.encyclopediaBtn);
         View regionalGuideBtn = findViewById(R.id.regionalGuideBtn);
-        View chatbotBtn = findViewById(R.id.chatbotBtn);
+        View acreAgentBtn = findViewById(R.id.acreAgentBtn);
         View satelliteBtn = findViewById(R.id.satelliteBtn);
-        View spaceWeatherBtn = findViewById(R.id.spaceWeatherBtn);
-        View droneBtn = findViewById(R.id.droneBtn);
 
         // Display welcome message
         welcomeText.setText(
@@ -82,17 +79,9 @@ public class HomeActivity extends AppCompatActivity {
             startActivity(plantInfoIntent);
         });
 
-        // Notepad button
-        notepadBtn.setOnClickListener(v -> {
-            Intent notepadIntent = new Intent(HomeActivity.this, NotepadActivity.class);
-            startActivity(notepadIntent);
-        });
-
-        // Chatbot button
-        chatbotBtn.setOnClickListener(v -> {
-            Intent chatIntent = new Intent(HomeActivity.this, ChatActivity.class);
-            chatIntent.putExtra("USER_NAME", userName);
-            startActivity(chatIntent);
+        acreAgentBtn.setOnClickListener(v -> {
+            Intent agentIntent = new Intent(HomeActivity.this, AcreAgentActivity.class);
+            startActivity(agentIntent);
         });
 
         // Agricultural Data (Satellite) button
@@ -100,18 +89,6 @@ public class HomeActivity extends AppCompatActivity {
             Intent satIntent = new Intent(HomeActivity.this, SatelliteActivity.class);
             satIntent.putExtra("USER_COUNTRY", userCountry);
             startActivity(satIntent);
-        });
-
-        // Space Weather button
-        spaceWeatherBtn.setOnClickListener(v -> {
-            Intent spaceIntent = new Intent(HomeActivity.this, SpaceWeatherActivity.class);
-            startActivity(spaceIntent);
-        });
-
-        // Drone Camera button
-        droneBtn.setOnClickListener(v -> {
-            Intent droneIntent = new Intent(HomeActivity.this, DroneActivity.class);
-            startActivity(droneIntent);
         });
     }
 }

@@ -47,6 +47,11 @@ public class ThermalOverlayView extends View {
         invalidate();
     }
 
+    public void clearThermal() {
+        this.thermalData = null;
+        invalidate();
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);

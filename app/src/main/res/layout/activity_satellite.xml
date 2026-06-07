@@ -138,6 +138,18 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
+        <Button
+            android:id="@+id/openAcreAgentButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginBottom="16dp"
+            android:backgroundTint="@color/green_accent"
+            android:text="Open Acre Agent"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
         <!-- Vegetation Health Card -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"

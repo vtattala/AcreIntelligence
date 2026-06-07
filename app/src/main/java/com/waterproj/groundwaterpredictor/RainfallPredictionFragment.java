@@ -69,6 +69,7 @@ public class RainfallPredictionFragment extends Fragment {
         TextView riskText = view.findViewById(R.id.riskText);
         TextView helperText = view.findViewById(R.id.helperText);
         TextView versionText = view.findViewById(R.id.versionText);
+        new WaterAgentPanelController(view).bind();
 
         resultCard.setVisibility(View.INVISIBLE);
 
@@ -134,11 +135,12 @@ public class RainfallPredictionFragment extends Fragment {
             }
 
             setLoading(true, predictButton, loadingBar);
+            RainfallLocationOption finalSelectedLocation = selectedLocation;
 
             RainfallRequest request = new RainfallRequest(
-                    selectedLocation.name,
-                    selectedLocation.lat,
-                    selectedLocation.lon,
+                    finalSelectedLocation.name,
+                    finalSelectedLocation.lat,
+                    finalSelectedLocation.lon,
                     horizon,
                     date
             );
@@ -160,6 +162,15 @@ public class RainfallPredictionFragment extends Fragment {
                         riskText.setText("Heavy rain risk: " + percentFormat.format(extremeRisk));
                         helperText.setText(buildHelperLine(rainChance, body.getRainfall_mm_p90_24h()));
                         versionText.setText("Model: " + body.getModel_version());
+                        WaterAgentRepository.getInstance().updateRainfall(
+                                new WaterAgentRepository.RainfallState(
+                                        finalSelectedLocation.name,
+                                        rainChance,
+                                        body.getRainfall_mm_p50_24h(),
+                                        body.getRainfall_mm_p90_24h(),
+                                        extremeRisk
+                                )
+                        );
 
                         showResultCard(resultCard);
                     } else {

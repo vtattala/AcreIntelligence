@@ -56,11 +56,6 @@
             android:name=".PlantInfoActivity"
             android:exported="false" />
 
-        <!-- NOTEPAD SCREEN -->
-        <activity
-            android:name=".NotepadActivity"
-            android:exported="false" />
-
         <activity
             android:name=".EncyclopediaActivity"
             android:exported="false" />
@@ -70,9 +65,8 @@
             android:exported="false" />
         <activity android:name=".PhoneAuthActivity" />
 
-        <!-- CHATBOT SCREEN -->
         <activity
-            android:name=".ChatActivity"
+            android:name=".AcreAgentActivity"
             android:exported="false" />
         <activity
             android:name=".SatelliteActivity"

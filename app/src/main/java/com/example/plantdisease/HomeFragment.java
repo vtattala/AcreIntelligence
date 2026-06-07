@@ -27,16 +27,21 @@ public class HomeFragment extends Fragment {
             userCountry = getArguments().getString("USER_COUNTRY");
         }
 
+        if (savedInstanceState == null) {
+            getChildFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.spaceWeatherPanelContainer, SpaceWeatherFragment.compact())
+                    .commit();
+        }
+
         welcomeText = view.findViewById(R.id.welcomeText);
         View plantDiseaseBtn = view.findViewById(R.id.plantDiseaseBtn);
         View insectDetectionBtn = view.findViewById(R.id.insectDetectionBtn);
         View plantInfoBtn = view.findViewById(R.id.plantInfoBtn);
-        View notepadBtn = view.findViewById(R.id.notepadBtn);
         View encyclopediaBtn = view.findViewById(R.id.encyclopediaBtn);
         View regionalGuideBtn = view.findViewById(R.id.regionalGuideBtn);
-        View chatbotBtn = view.findViewById(R.id.chatbotBtn);
+        View acreAgentBtn = view.findViewById(R.id.acreAgentBtn);
         View satelliteBtn = view.findViewById(R.id.satelliteBtn);
-        View droneBtn = view.findViewById(R.id.droneBtn);
 
         welcomeText.setText(
                 "Welcome back, " + userName +
@@ -74,14 +79,8 @@ public class HomeFragment extends Fragment {
             startActivity(new Intent(getActivity(), PlantInfoActivity.class));
         });
 
-        notepadBtn.setOnClickListener(v -> {
-            startActivity(new Intent(getActivity(), NotepadActivity.class));
-        });
-
-        chatbotBtn.setOnClickListener(v -> {
-            Intent chatIntent = new Intent(getActivity(), ChatActivity.class);
-            chatIntent.putExtra("USER_NAME", userName);
-            startActivity(chatIntent);
+        acreAgentBtn.setOnClickListener(v -> {
+            startActivity(new Intent(getActivity(), AcreAgentActivity.class));
         });
 
         satelliteBtn.setOnClickListener(v -> {
@@ -89,12 +88,6 @@ public class HomeFragment extends Fragment {
             satIntent.putExtra("USER_COUNTRY", userCountry);
             startActivity(satIntent);
         });
-
-        if (droneBtn != null) {
-            droneBtn.setOnClickListener(v -> {
-                startActivity(new Intent(getActivity(), DroneActivity.class));
-            });
-        }
 
         return view;
     }

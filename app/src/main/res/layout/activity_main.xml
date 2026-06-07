@@ -71,18 +71,56 @@
         android:layout_marginBottom="16dp"
         android:visibility="gone" />
 
-    <!-- Results Display -->
-    <TextView
-        android:id="@+id/resultText"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:background="#E8F5E9"
-        android:elevation="8dp"
-        android:fontFamily="@font/poppins_regular"
-        android:gravity="center"
-        android:padding="20dp"
-        android:text="Select an image to analyze"
-        android:textColor="#1A2B4A"
-        android:textSize="18sp" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/resultText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#E8F5E9"
+                android:elevation="8dp"
+                android:fontFamily="@font/poppins_regular"
+                android:gravity="center"
+                android:padding="20dp"
+                android:text="Select an image to analyze"
+                android:textColor="#1A2B4A"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/diagnosisAgentText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="#FFFFFF"
+                android:elevation="6dp"
+                android:fontFamily="@font/poppins_regular"
+                android:padding="18dp"
+                android:text="The diagnosis advisor will explain the model result after analysis."
+                android:textColor="#102A2A"
+                android:textSize="15sp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/diagnosisAgentBtn"
+                android:layout_width="128dp"
+                android:layout_height="128dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:backgroundTint="@color/green_accent"
+                android:elevation="8dp"
+                android:fontFamily="@font/poppins_bold"
+                android:text="Diagnosis\nAgent"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>

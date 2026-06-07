@@ -87,16 +87,50 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <TextView
-            android:id="@+id/resultText"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#E8F5E9"
-            android:elevation="8dp"
-            android:fontFamily="@font/poppins_regular"
-            android:padding="20dp"
-            android:text="Select an image to analyze"
-            android:textColor="#1A2B4A"
-            android:textSize="16sp" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/resultText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#E8F5E9"
+                android:elevation="8dp"
+                android:fontFamily="@font/poppins_regular"
+                android:padding="20dp"
+                android:text="Select an image to analyze"
+                android:textColor="#1A2B4A"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/insectAgentText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="#FFFFFF"
+                android:elevation="6dp"
+                android:fontFamily="@font/poppins_regular"
+                android:padding="18dp"
+                android:text="The pest advisor will explain the model result after analysis."
+                android:textColor="#102A2A"
+                android:textSize="15sp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/insectAgentBtn"
+                android:layout_width="128dp"
+                android:layout_height="128dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:backgroundTint="#6BAA6E"
+                android:elevation="8dp"
+                android:fontFamily="@font/poppins_bold"
+                android:text="Pest\nAgent"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:visibility="gone" />
+        </LinearLayout>
     </ScrollView>
 </LinearLayout>

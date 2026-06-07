@@ -342,7 +342,7 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- AI Crop Summary Card -->
+            <!-- Space Weather Agent Card -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -360,7 +360,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🤖 AI Crop Summary"
+                        android:text="Space Weather Agent Analysis"
                         android:textSize="16sp"
                         android:textColor="#B0B8D4"
                         android:layout_marginBottom="12dp" />
@@ -369,7 +369,7 @@
                         android:id="@+id/aiSummary"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Generating AI summary..."
+                        android:text="Generating agent analysis..."
                         android:textSize="15sp"
                         android:textColor="#FFFFFF"
                         android:lineSpacingExtra="4dp" />

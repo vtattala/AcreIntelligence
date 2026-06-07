@@ -13,6 +13,9 @@ public class SoilMoistureHeatmapView extends View {
     private float[] values = new float[0];
     private int rows = 1;
     private int columns = 1;
+    private boolean useFixedScale;
+    private float fixedMin;
+    private float fixedMax = 1f;
 
     public SoilMoistureHeatmapView(Context context) {
         super(context);
@@ -26,6 +29,17 @@ public class SoilMoistureHeatmapView extends View {
         values = nextValues == null ? new float[0] : nextValues.clone();
         rows = Math.max(1, nextRows);
         columns = Math.max(1, nextColumns);
+        useFixedScale = false;
+        invalidate();
+    }
+
+    public void setHeatmap(float[] nextValues, int nextRows, int nextColumns, float nextMin, float nextMax) {
+        values = nextValues == null ? new float[0] : nextValues.clone();
+        rows = Math.max(1, nextRows);
+        columns = Math.max(1, nextColumns);
+        useFixedScale = nextMax > nextMin;
+        fixedMin = nextMin;
+        fixedMax = nextMax;
         invalidate();
     }
 
@@ -39,12 +53,16 @@ public class SoilMoistureHeatmapView extends View {
             return;
         }
 
-        float min = Float.MAX_VALUE;
-        float max = -Float.MAX_VALUE;
-        for (float value : values) {
-            if (Float.isFinite(value)) {
-                min = Math.min(min, value);
-                max = Math.max(max, value);
+        float min = fixedMin;
+        float max = fixedMax;
+        if (!useFixedScale) {
+            min = Float.MAX_VALUE;
+            max = -Float.MAX_VALUE;
+            for (float value : values) {
+                if (Float.isFinite(value)) {
+                    min = Math.min(min, value);
+                    max = Math.max(max, value);
+                }
             }
         }
 

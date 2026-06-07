@@ -320,5 +320,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <include layout="@layout/panel_water_agent_inline" />
+
     </LinearLayout>
 </ScrollView>

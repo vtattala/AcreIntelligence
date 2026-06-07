@@ -16,17 +16,15 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
-import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class SpaceWeatherFragment extends Fragment {
+    private static final String ARG_COMPACT = "COMPACT";
 
     private TextView kpIndexValue, kpStatus, solarWindValue, solarWindStatus;
     private TextView f107Value, f107Status, geomagneticStatus, radiationStatus;
@@ -44,7 +42,8 @@ public class SpaceWeatherFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_space_weather, container, false);
+        boolean compact = getArguments() != null && getArguments().getBoolean(ARG_COMPACT, false);
+        View view = inflater.inflate(compact ? R.layout.panel_space_weather : R.layout.fragment_space_weather, container, false);
 
         // Connect to XML views
         kpIndexValue = view.findViewById(R.id.kpIndexValue);
@@ -60,7 +59,7 @@ public class SpaceWeatherFragment extends Fragment {
         cropImpact = view.findViewById(R.id.cropImpact);
         satelliteImpact = view.findViewById(R.id.satelliteImpact);
 
-        // AI summary view
+        // Space Weather Agent analysis view
         aiSummary = view.findViewById(R.id.aiSummary);
 
         // Refresh button
@@ -70,7 +69,7 @@ public class SpaceWeatherFragment extends Fragment {
             f107Value.setText("Loading...");
             cropImpact.setText("Analyzing crop impact...");
             satelliteImpact.setText("Analyzing satellite impact...");
-            aiSummary.setText("Generating AI summary...");
+            aiSummary.setText("Generating agent analysis...");
             fetchSpaceWeather();
         });
 
@@ -78,6 +77,14 @@ public class SpaceWeatherFragment extends Fragment {
         fetchSpaceWeather();
 
         return view;
+    }
+
+    public static SpaceWeatherFragment compact() {
+        SpaceWeatherFragment fragment = new SpaceWeatherFragment();
+        Bundle args = new Bundle();
+        args.putBoolean(ARG_COMPACT, true);
+        fragment.setArguments(args);
+        return fragment;
     }
 
     private void fetchSpaceWeather() {
@@ -93,7 +100,7 @@ public class SpaceWeatherFragment extends Fragment {
                         kpIndexValue.setText("Error");
                         kpStatus.setText("Unable to fetch data");
                         cropImpact.setText("Unable to determine crop impact");
-                        aiSummary.setText("AI summary unavailable.");
+                        aiSummary.setText("Agent analysis unavailable.");
                     });
                 }
             }
@@ -119,7 +126,7 @@ public class SpaceWeatherFragment extends Fragment {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         satelliteImpact.setText("Unable to determine satellite impact");
-                        aiSummary.setText("AI summary unavailable.");
+                        aiSummary.setText("Agent analysis unavailable.");
                     });
                 }
             }
@@ -192,12 +199,13 @@ public class SpaceWeatherFragment extends Fragment {
                         radiationStatus.setText("Elevated radiation — monitor crop stress");
                         radiationStatus.setTextColor(Color.parseColor("#D84315"));
                     }
+                    publishSpaceWeatherState();
                 });
             }
         } catch (Exception e) {
             Log.e("PARSE_KP", "Error parsing Kp JSON", e);
             if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> aiSummary.setText("AI summary unavailable."));
+                getActivity().runOnUiThread(() -> aiSummary.setText("Agent analysis unavailable."));
             }
         }
     }
@@ -261,146 +269,78 @@ public class SpaceWeatherFragment extends Fragment {
                         f107Status.setTextColor(Color.parseColor("#D84315"));
                     }
 
-                    // After both datasets are updated, generate AI summary
-                    String prompt = buildAIPrompt(
-                            lastKpIndex,
-                            lastEstimatedSpeed,
-                            lastF107,
-                            cropImpact.getText().toString(),
-                            satelliteImpact.getText().toString()
-                    );
-                    generateAISummary(prompt);
+                    generateSpaceWeatherAgentSummary();
+                    publishSpaceWeatherState();
                 });
             }
         } catch (Exception e) {
             Log.e("PARSE_SOLAR", "Error parsing solar wind JSON", e);
             if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> aiSummary.setText("AI summary unavailable."));
+                getActivity().runOnUiThread(() -> aiSummary.setText("Agent analysis unavailable."));
             }
         }
     }
 
-    // Build a concise prompt for the AI service
-    private String buildAIPrompt(double kp, double wind, double f107, String cropImpactText, String satelliteImpactText) {
-        return "You are an agricultural advisor. Based on the following space weather data, generate a short 2-3 sentence summary explaining how today's solar conditions affect crops, vegetation indices (NDVI), and satellite-based monitoring. Use plain language for farmers.\n\n" +
-                "Kp Index: " + (Double.isNaN(kp) ? "N/A" : String.format("%.1f", kp)) + "\n" +
-                "Solar Wind Speed: " + (Double.isNaN(wind) ? "N/A" : String.format("%.0f km/s", wind)) + "\n" +
-                "F10.7 Solar Flux: " + (Double.isNaN(f107) ? "N/A" : String.format("%.0f sfu", f107)) + "\n" +
-                "Crop Impact Note: " + cropImpactText + "\n" +
-                "Satellite Impact Note: " + satelliteImpactText + "\n\n" +
-                "Provide a clear, actionable summary for farmers (2-3 sentences).";
+    private void generateSpaceWeatherAgentSummary() {
+        String risk = "Low";
+        if (!Double.isNaN(lastKpIndex) && lastKpIndex >= 6) {
+            risk = "High";
+        } else if ((!Double.isNaN(lastKpIndex) && lastKpIndex >= 4)
+                || (!Double.isNaN(lastEstimatedSpeed) && lastEstimatedSpeed >= 600)
+                || (!Double.isNaN(lastF107) && lastF107 >= 150)) {
+            risk = "Medium";
+        }
+
+        StringBuilder summary = new StringBuilder();
+        summary.append("Space Weather Agent\n\n");
+        summary.append("Integrated space risk: ").append(risk).append(". ");
+        summary.append("Kp ")
+                .append(Double.isNaN(lastKpIndex) ? "N/A" : String.format("%.1f", lastKpIndex))
+                .append(", solar wind ")
+                .append(Double.isNaN(lastEstimatedSpeed) ? "N/A" : String.format("%.0f km/s", lastEstimatedSpeed))
+                .append(", F10.7 ")
+                .append(Double.isNaN(lastF107) ? "N/A" : String.format("%.0f sfu", lastF107))
+                .append(".\n\n");
+
+        if ("High".equals(risk)) {
+            summary.append("Meaning for crops: direct crop damage is usually not the main concern. The bigger issue is that satellite-based vegetation, NDVI, and soil-moisture signals may be noisier during disturbed geomagnetic conditions.\n\n");
+            summary.append("Action: If field data shows sudden stress today, verify with ground observation before making a major irrigation, disease, or fertilizer decision.");
+        } else if ("Medium".equals(risk)) {
+            summary.append("Meaning for crops: crop growth impact is likely limited, but remote sensing and GPS-linked field readings may have mild reliability issues.\n\n");
+            summary.append("Action: Use satellite/agricultural data normally, but double-check unusual readings with a field walk or drone feed.");
+        } else {
+            summary.append("Meaning for crops: space weather is quiet enough that satellite vegetation and soil-moisture monitoring should be reasonably reliable.\n\n");
+            summary.append("Action: Normal crop scouting and water decisions can rely more confidently on field and satellite data.");
+        }
+
+        summary.append("\n\nWhy this matters: space weather does not diagnose plant disease by itself, but it can affect the quality of satellite signals that the farm advisor uses to interpret crop health, water stress, and field variability.");
+        aiSummary.setText(summary.toString());
     }
 
-    // Robust AI call that tolerates multiple response shapes and logs raw response
-    private void generateAISummary(String prompt) {
-        if (getActivity() == null) return;
-
-        aiSummary.setText("Generating AI summary...");
-
-        // Replace with your backend endpoint. For emulator testing use: http://10.0.2.2:3000/generate
-        String aiUrl = "https://your-ai-endpoint.example.com/generate";
-
-        OkHttpClient clientWithTimeout = httpClient.newBuilder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .writeTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
-                .build();
-
-        try {
-            JSONObject payload = new JSONObject();
-            payload.put("prompt", prompt);
-            payload.put("max_tokens", 120);
-
-            RequestBody body = RequestBody.create(
-                    payload.toString(),
-                    MediaType.parse("application/json; charset=utf-8")
-            );
-
-            Request request = new Request.Builder()
-                    .url(aiUrl)
-                    .post(body)
-                    .header("Accept", "application/json")
-                    .build();
-
-            clientWithTimeout.newCall(request).enqueue(new Callback() {
-                @Override
-                public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                    Log.e("AI_SUMMARY", "Network failure", e);
-                    if (getActivity() != null) {
-                        getActivity().runOnUiThread(() ->
-                                aiSummary.setText("AI summary unavailable (network).")
-                        );
-                    }
-                }
-
-                @Override
-                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                    String raw = null;
-                    try {
-                        int code = response.code();
-                        Log.d("AI_SUMMARY", "HTTP status: " + code);
-                        if (response.body() != null) raw = response.body().string();
-                        Log.d("AI_SUMMARY", "Raw response: " + raw);
-
-                        if (code >= 400) {
-                            Log.e("AI_SUMMARY", "Server error code: " + code);
-                            if (getActivity() != null) {
-                                getActivity().runOnUiThread(() -> aiSummary.setText("AI service error: " + code));
-                            }
-                            return;
-                        }
-
-                        if (raw == null || raw.isEmpty()) {
-                            throw new IOException("Empty response body");
-                        }
-
-                        // Try to extract summary from common shapes
-                        String summary = null;
-                        try {
-                            JSONObject obj = new JSONObject(raw);
-
-                            if (obj.has("summary")) summary = obj.optString("summary", null);
-                            if (summary == null && obj.has("text")) summary = obj.optString("text", null);
-
-                            if (summary == null && obj.has("choices")) {
-                                JSONArray choices = obj.optJSONArray("choices");
-                                if (choices != null && choices.length() > 0) {
-                                    JSONObject first = choices.optJSONObject(0);
-                                    if (first != null) summary = first.optString("text", first.optString("message", null));
-                                }
-                            }
-
-                            if (summary == null && obj.has("result")) summary = obj.optString("result", null);
-                            if (summary == null && obj.has("data")) summary = obj.optString("data", null);
-                        } catch (Exception parseEx) {
-                            Log.w("AI_SUMMARY", "Response not JSON or unexpected format", parseEx);
-                        }
-
-                        if (summary == null) {
-                            // fallback: use raw body (trim)
-                            summary = raw.length() > 1200 ? raw.substring(0, 1200) + "..." : raw;
-                        }
-
-                        final String finalSummary = summary;
-                        if (getActivity() != null) {
-                            getActivity().runOnUiThread(() -> aiSummary.setText(finalSummary));
-                        }
-                    } catch (Exception e) {
-                        Log.e("AI_SUMMARY", "Error processing AI response", e);
-                        if (getActivity() != null) {
-                            getActivity().runOnUiThread(() -> aiSummary.setText("AI summary error."));
-                        }
-                    } finally {
-                        response.close();
-                    }
-                }
-            });
-
-        } catch (Exception e) {
-            Log.e("AI_SUMMARY", "Failed to build request", e);
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> aiSummary.setText("AI summary error."));
-            }
+    private void publishSpaceWeatherState() {
+        if (Double.isNaN(lastKpIndex) && Double.isNaN(lastEstimatedSpeed) && Double.isNaN(lastF107)) {
+            return;
         }
+
+        String risk = "Low";
+        if (!Double.isNaN(lastKpIndex) && lastKpIndex >= 6) {
+            risk = "High";
+        } else if (!Double.isNaN(lastKpIndex) && lastKpIndex >= 4) {
+            risk = "Medium";
+        } else if (!Double.isNaN(lastEstimatedSpeed) && lastEstimatedSpeed >= 600) {
+            risk = "Medium";
+        }
+
+        AcreAgentRepository.getInstance().updateSpaceWeather(
+                new AcreAgentRepository.SpaceWeatherState(
+                        risk,
+                        Double.isNaN(lastKpIndex) ? -1.0 : lastKpIndex,
+                        Double.isNaN(lastEstimatedSpeed) ? -1.0 : lastEstimatedSpeed,
+                        Double.isNaN(lastF107) ? -1.0 : lastF107,
+                        cropImpact == null ? "" : String.valueOf(cropImpact.getText()),
+                        satelliteImpact == null ? "" : String.valueOf(satelliteImpact.getText())
+                )
+        );
     }
 }
+

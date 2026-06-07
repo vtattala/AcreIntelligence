@@ -54,8 +54,6 @@ public class MainContainerActivity extends AppCompatActivity {
                 homeFragment.setArguments(bundle);
 
                 return homeFragment;
-            } else if (position == 1) {
-                return new SpaceWeatherFragment();
             } else {
                 return new GroundwaterAppFragment();
             }
@@ -63,7 +61,7 @@ public class MainContainerActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return 3;
+            return 2;
         }
     }
 }

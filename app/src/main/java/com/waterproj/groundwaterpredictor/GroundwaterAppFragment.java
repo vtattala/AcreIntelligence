@@ -18,7 +18,7 @@ public class GroundwaterAppFragment extends Fragment {
     private static final String[] TAB_TITLES = new String[]{
             "Groundwater",
             "Rainfall",
-            "Soil Moisture"
+            "Drone Mapping"
     };
 
     @Nullable

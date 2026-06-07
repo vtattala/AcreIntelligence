@@ -140,6 +140,16 @@
             android:layout_height="wrap_content"/>
 
         <Button
+            android:id="@+id/btn_camera_layer"
+            android:text="Camera On"
+            android:backgroundTint="#134D2E"
+            android:textColor="#22C55E"
+            android:layout_margin="8dp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
+
+        <Button
             android:id="@+id/btn_thermal"
             android:text="Thermal Off"
             android:backgroundTint="#134D2E"
