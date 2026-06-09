@@ -24,8 +24,9 @@ android {
         Properties properties = new Properties()
         properties.load(project.rootProject.file("local.properties").newDataInputStream())
 
-        buildConfigField "String", "WEATHER_API_KEY", "\"${properties.getProperty('WEATHER_API_KEY')}\""
-        buildConfigField "String", "TREFLE_API_KEY", "\"${properties.getProperty('TREFLE_API_KEY')}\""
+        buildConfigField "String", "WEATHER_API_KEY", "\"${properties.getProperty('WEATHER_API_KEY', '')}\""
+        buildConfigField "String", "TREFLE_API_KEY", "\"${properties.getProperty('TREFLE_API_KEY', '')}\""
+        buildConfigField "String", "EARTHDATA_TOKEN", "\"${properties.getProperty('EARTHDATA_TOKEN', '')}\""
     }
 
     buildFeatures {

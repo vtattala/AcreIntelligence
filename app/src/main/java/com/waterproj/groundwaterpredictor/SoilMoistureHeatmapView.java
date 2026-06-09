@@ -3,26 +3,41 @@ package com.waterproj.groundwaterpredictor;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 
 import androidx.annotation.Nullable;
 
 public class SoilMoistureHeatmapView extends View {
-    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint paint = new Paint();
+    private final Paint gridPaint = new Paint();
+    private final RectF cellRect = new RectF();
     private float[] values = new float[0];
     private int rows = 1;
     private int columns = 1;
     private boolean useFixedScale;
     private float fixedMin;
     private float fixedMax = 1f;
+    private int colorSteps = 0;
 
     public SoilMoistureHeatmapView(Context context) {
         super(context);
+        initPaints();
     }
 
     public SoilMoistureHeatmapView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
+        initPaints();
+    }
+
+    private void initPaints() {
+        paint.setAntiAlias(false);
+        paint.setStyle(Paint.Style.FILL);
+        gridPaint.setAntiAlias(false);
+        gridPaint.setStyle(Paint.Style.STROKE);
+        gridPaint.setStrokeWidth(1f);
+        gridPaint.setColor(0x33FFFFFF);
     }
 
     public void setHeatmap(float[] nextValues, int nextRows, int nextColumns) {
@@ -40,6 +55,11 @@ public class SoilMoistureHeatmapView extends View {
         useFixedScale = nextMax > nextMin;
         fixedMin = nextMin;
         fixedMax = nextMax;
+        invalidate();
+    }
+
+    public void setColorSteps(int nextColorSteps) {
+        colorSteps = Math.max(0, nextColorSteps);
         invalidate();
     }
 
@@ -74,20 +94,27 @@ public class SoilMoistureHeatmapView extends View {
         float cellWidth = getWidth() / (float) columns;
         float cellHeight = getHeight() / (float) rows;
         int valueCount = values.length;
+        boolean drawGrid = cellWidth >= 7f && cellHeight >= 7f;
 
         for (int row = 0; row < rows; row++) {
             for (int column = 0; column < columns; column++) {
                 int index = row * columns + column;
                 float value = values[Math.min(index, valueCount - 1)];
                 float normalized = Math.max(0f, Math.min(1f, (value - min) / (max - min)));
+                if (colorSteps > 1) {
+                    normalized = Math.round(normalized * (colorSteps - 1)) / (float) (colorSteps - 1);
+                }
                 paint.setColor(interpolateColor(normalized));
-                canvas.drawRect(
-                        column * cellWidth,
-                        row * cellHeight,
-                        (column + 1) * cellWidth + 1f,
-                        (row + 1) * cellHeight + 1f,
-                        paint
+                cellRect.set(
+                        (float) Math.floor(column * cellWidth),
+                        (float) Math.floor(row * cellHeight),
+                        (float) Math.ceil((column + 1) * cellWidth),
+                        (float) Math.ceil((row + 1) * cellHeight)
                 );
+                canvas.drawRect(cellRect, paint);
+                if (drawGrid) {
+                    canvas.drawRect(cellRect, gridPaint);
+                }
             }
         }
     }

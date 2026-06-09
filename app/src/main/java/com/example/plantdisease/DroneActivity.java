@@ -29,9 +29,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DroneActivity extends AppCompatActivity {
 
-    private static final String STREAM_URL = "http://192.168.68.121:8080/stream";
-    private static final String HEALTH_URL = "http://192.168.68.121:8080/health";
-    private static final String THERMAL_URL = "http://192.168.68.121:8080/thermal";
+    private static final String STREAM_URL = "http://192.168.1.6:8080/stream";
+    private static final String HEALTH_URL = "http://192.168.1.6:8080/health";
+    private static final String THERMAL_URL = "http://192.168.1.6:8080/thermal";
 
     private ImageView feedView;
     private TextView statusText;

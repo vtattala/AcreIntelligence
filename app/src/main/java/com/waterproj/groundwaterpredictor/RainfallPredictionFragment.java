@@ -149,51 +149,61 @@ public class RainfallPredictionFragment extends Fragment {
                 @Override
                 public void onResponse(@NonNull Call<RainfallResponse> call,
                                        @NonNull Response<RainfallResponse> response) {
-                    setLoading(false, predictButton, loadingBar);
-
                     if (response.isSuccessful() && response.body() != null) {
                         RainfallResponse body = response.body();
                         double rainChance = Math.max(0.0, Math.min(1.0, body.getRain_probability_24h()));
                         double extremeRisk = Math.max(0.0, Math.min(1.0, body.getExtreme_rain_risk()));
 
-                        summaryText.setText(buildSummary(rainChance, body.getRainfall_mm_p50_24h()));
-                        chanceText.setText("Chance of rain: " + percentFormat.format(rainChance));
-                        amountText.setText("Likely rainfall: " + rainFormat.format(body.getRainfall_mm_p50_24h()) + " mm");
-                        riskText.setText("Heavy rain risk: " + percentFormat.format(extremeRisk));
-                        helperText.setText(buildHelperLine(rainChance, body.getRainfall_mm_p90_24h()));
-                        versionText.setText("Model: " + body.getModel_version());
-                        WaterAgentRepository.getInstance().updateRainfall(
-                                new WaterAgentRepository.RainfallState(
-                                        finalSelectedLocation.name,
-                                        rainChance,
-                                        body.getRainfall_mm_p50_24h(),
-                                        body.getRainfall_mm_p90_24h(),
-                                        extremeRisk
-                                )
+                        setLoading(false, predictButton, loadingBar);
+                        showRainfallResult(
+                                resultCard,
+                                summaryText,
+                                chanceText,
+                                amountText,
+                                riskText,
+                                helperText,
+                                versionText,
+                                finalSelectedLocation.name,
+                                rainChance,
+                                body.getRainfall_mm_p50_24h(),
+                                body.getRainfall_mm_p90_24h(),
+                                extremeRisk,
+                                "Model: " + body.getModel_version()
                         );
-
-                        showResultCard(resultCard);
                     } else {
-                        summaryText.setText("We could not get a prediction.");
-                        chanceText.setText("Try a date closer to today.");
-                        amountText.setText("");
-                        riskText.setText("");
-                        helperText.setText("Also make sure your backend URL is correct.");
-                        versionText.setText("HTTP " + response.code());
-                        showResultCard(resultCard);
+                        fetchOpenMeteoFallback(
+                                finalSelectedLocation,
+                                date,
+                                predictButton,
+                                loadingBar,
+                                resultCard,
+                                summaryText,
+                                chanceText,
+                                amountText,
+                                riskText,
+                                helperText,
+                                versionText,
+                                "Rainfall model backend returned HTTP " + response.code() + "."
+                        );
                     }
                 }
 
                 @Override
                 public void onFailure(@NonNull Call<RainfallResponse> call, @NonNull Throwable t) {
-                    setLoading(false, predictButton, loadingBar);
-                    summaryText.setText("Connection problem.");
-                    chanceText.setText("Please check the internet or backend URL.");
-                    amountText.setText("");
-                    riskText.setText("");
-                    helperText.setText("If the backend is sleeping, wait a few seconds and try again.");
-                    versionText.setText(t.getMessage() != null ? t.getMessage() : "Unknown error");
-                    showResultCard(resultCard);
+                    fetchOpenMeteoFallback(
+                            finalSelectedLocation,
+                            date,
+                            predictButton,
+                            loadingBar,
+                            resultCard,
+                            summaryText,
+                            chanceText,
+                            amountText,
+                            riskText,
+                            helperText,
+                            versionText,
+                            t.getMessage() == null ? "Rainfall model backend unavailable." : t.getMessage()
+                    );
                 }
             });
         });
@@ -257,6 +267,169 @@ public class RainfallPredictionFragment extends Fragment {
         } else {
             animateSmallCard(card);
         }
+    }
+
+    private void fetchOpenMeteoFallback(
+            RainfallLocationOption selectedLocation,
+            String date,
+            Button predictButton,
+            ProgressBar loadingBar,
+            MaterialCardView resultCard,
+            TextView summaryText,
+            TextView chanceText,
+            TextView amountText,
+            TextView riskText,
+            TextView helperText,
+            TextView versionText,
+            String backendProblem
+    ) {
+        OpenMeteoRainfallClient.getApiService().getForecast(
+                selectedLocation.lat,
+                selectedLocation.lon,
+                "precipitation_probability_max,precipitation_sum,precipitation_hours",
+                "auto",
+                16
+        ).enqueue(new Callback<OpenMeteoRainfallResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<OpenMeteoRainfallResponse> call,
+                                   @NonNull Response<OpenMeteoRainfallResponse> response) {
+                setLoading(false, predictButton, loadingBar);
+                if (!response.isSuccessful() || response.body() == null) {
+                    showRainfallFailure(
+                            resultCard,
+                            summaryText,
+                            chanceText,
+                            amountText,
+                            riskText,
+                            helperText,
+                            versionText,
+                            backendProblem + " Fallback HTTP " + response.code() + "."
+                    );
+                    return;
+                }
+
+                OpenMeteoRainfallResponse.Daily daily = response.body().getDaily();
+                int index = findDateIndex(daily.getTime(), date);
+                if (index < 0) {
+                    showRainfallFailure(
+                            resultCard,
+                            summaryText,
+                            chanceText,
+                            amountText,
+                            riskText,
+                            helperText,
+                            versionText,
+                            "Fallback forecast did not include " + date + "."
+                    );
+                    return;
+                }
+
+                double probability = valueAt(daily.getPrecipitationProbabilityMax(), index, 0.0) / 100.0;
+                double medianRain = valueAt(daily.getPrecipitationSum(), index, 0.0);
+                double rainHours = valueAt(daily.getPrecipitationHours(), index, 0.0);
+                double upperRain = Math.max(medianRain, medianRain * 1.45 + Math.max(0.0, rainHours - 3.0) * 0.20);
+                double extremeRisk = Math.max(0.0, Math.min(1.0, (upperRain - 12.0) / 28.0));
+
+                showRainfallResult(
+                        resultCard,
+                        summaryText,
+                        chanceText,
+                        amountText,
+                        riskText,
+                        helperText,
+                        versionText,
+                        selectedLocation.name,
+                        probability,
+                        medianRain,
+                        upperRain,
+                        extremeRisk,
+                        "Model: Open-Meteo live fallback | " + backendProblem
+                );
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<OpenMeteoRainfallResponse> call, @NonNull Throwable t) {
+                setLoading(false, predictButton, loadingBar);
+                showRainfallFailure(
+                        resultCard,
+                        summaryText,
+                        chanceText,
+                        amountText,
+                        riskText,
+                        helperText,
+                        versionText,
+                        backendProblem + " Fallback failed: " + (t.getMessage() == null ? "unknown error" : t.getMessage())
+                );
+            }
+        });
+    }
+
+    private void showRainfallResult(
+            MaterialCardView resultCard,
+            TextView summaryText,
+            TextView chanceText,
+            TextView amountText,
+            TextView riskText,
+            TextView helperText,
+            TextView versionText,
+            String location,
+            double rainChance,
+            double medianRainMm,
+            double upperRainMm,
+            double extremeRisk,
+            String modelLabel
+    ) {
+        summaryText.setText(buildSummary(rainChance, medianRainMm));
+        chanceText.setText("Chance of rain: " + percentFormat.format(rainChance));
+        amountText.setText("Likely rainfall: " + rainFormat.format(medianRainMm) + " mm");
+        riskText.setText("Heavy rain risk: " + percentFormat.format(extremeRisk));
+        helperText.setText(buildHelperLine(rainChance, upperRainMm));
+        versionText.setText(modelLabel);
+        WaterAgentRepository.getInstance().updateRainfall(
+                new WaterAgentRepository.RainfallState(
+                        location,
+                        rainChance,
+                        medianRainMm,
+                        upperRainMm,
+                        extremeRisk
+                )
+        );
+        showResultCard(resultCard);
+    }
+
+    private void showRainfallFailure(
+            MaterialCardView resultCard,
+            TextView summaryText,
+            TextView chanceText,
+            TextView amountText,
+            TextView riskText,
+            TextView helperText,
+            TextView versionText,
+            String message
+    ) {
+        summaryText.setText("We could not get a rainfall forecast.");
+        chanceText.setText("Backend and fallback weather source both failed.");
+        amountText.setText("");
+        riskText.setText("");
+        helperText.setText("Check internet access, then try again.");
+        versionText.setText(message);
+        showResultCard(resultCard);
+    }
+
+    private int findDateIndex(List<String> dates, String targetDate) {
+        for (int i = 0; i < dates.size(); i++) {
+            if (targetDate.equals(dates.get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private double valueAt(List<Double> values, int index, double fallback) {
+        if (index < 0 || index >= values.size() || values.get(index) == null) {
+            return fallback;
+        }
+        return values.get(index);
     }
 
     private void animateSmallCard(View card) {
